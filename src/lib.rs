@@ -7,6 +7,9 @@ mod state_transducer;
 
 use self::state_transducer::{Output, StateTransducer};
 
+/// An error indicating an inconsistency between two channel-value reads.
+pub struct Error;
+
 /// The movement detected by a quadrature decoder.
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
