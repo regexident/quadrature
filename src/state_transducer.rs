@@ -1,6 +1,8 @@
 //! A finite-state transducer (FST), i.e. a type of finite-state machine (FSM)
 //! that maps between two sets of symbols: inputs and outputs.
 
+pub(crate) mod full_step;
+
 /// A type defining the FST's inputs.
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
