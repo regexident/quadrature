@@ -2,3 +2,7 @@
 //! based on a finite-state-transducer with support for different step-modes.
 #![warn(missing_docs)]
 #![cfg_attr(not(test), no_std)]
+
+mod state_transducer;
+
+use self::state_transducer::{Output, StateTransducer};
