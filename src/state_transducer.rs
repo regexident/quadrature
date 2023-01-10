@@ -3,6 +3,7 @@
 
 pub(crate) mod full_step;
 pub(crate) mod half_step;
+pub(crate) mod quad_step;
 
 /// A type defining the FST's inputs.
 #[repr(u8)]
