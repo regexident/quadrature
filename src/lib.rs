@@ -7,6 +7,60 @@ mod state_transducer;
 
 use self::state_transducer::{Output, StateTransducer};
 
+/// The movement detected by a quadrature decoder.
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum Movement {
+    /// Forward movement (i.e. channel A leads channel B).
+    Forward = 0,
+    /// Forward movement (i.e. channel A trails channel B).
+    Reverse = 1,
+}
+
+impl Movement {
+    /// Flips the direction of `self`.
+    pub fn flip(&mut self) {
+        *self = self.flipped()
+    }
+
+    /// Returns the direction of `self`, flipped.
+    pub fn flipped(self) -> Self {
+        match self {
+            Self::Forward => Self::Reverse,
+            Self::Reverse => Self::Forward,
+        }
+    }
+}
+
+impl From<Movement> for Output {
+    fn from(movement: Movement) -> Self {
+        match movement {
+            Movement::Forward => Self::F,
+            Movement::Reverse => Self::R,
+        }
+    }
+}
+
+impl From<Option<Movement>> for Output {
+    fn from(movement: Option<Movement>) -> Self {
+        match movement {
+            Some(movement) => movement.into(),
+            None => Self::N,
+        }
+    }
+}
+
+impl From<Output> for Result<Option<Movement>, Error> {
+    fn from(output: Output) -> Self {
+        match output {
+            Output::N => Ok(None),
+            Output::F => Ok(Some(Movement::Forward)),
+            Output::R => Ok(Some(Movement::Reverse)),
+            Output::E => Err(Error),
+        }
+    }
+}
+
 mod sealed {
     pub trait Sealed {}
 }
