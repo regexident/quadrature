@@ -7,7 +7,10 @@ mod decoder;
 mod state_transducer;
 mod validator;
 
-pub use self::decoder::{LinearDecoder, LinearMovement, QuadratureDecoder, QuadratureMovement};
+pub use self::decoder::{
+    LinearDecoder, LinearMovement, QuadratureDecoder, QuadratureMovement, RotaryDecoder,
+    RotaryMovement,
+};
 
 use self::state_transducer::StateTransducer;
 
