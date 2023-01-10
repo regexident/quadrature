@@ -3,7 +3,10 @@
 #![warn(missing_docs)]
 #![cfg_attr(not(test), no_std)]
 
+mod decoder;
 mod state_transducer;
+
+pub use self::decoder::QuadratureDecoder;
 
 use self::state_transducer::{Output, StateTransducer};
 
