@@ -2,4 +2,4 @@
 
 mod quadrature;
 
-pub use self::quadrature::QuadratureDecoder;
+pub use self::quadrature::{QuadratureDecoder, QuadratureMovement};

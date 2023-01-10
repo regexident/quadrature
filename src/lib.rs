@@ -7,9 +7,9 @@ mod decoder;
 mod state_transducer;
 mod validator;
 
-pub use self::decoder::QuadratureDecoder;
+pub use self::decoder::{QuadratureDecoder, QuadratureMovement};
 
-use self::state_transducer::{Output, StateTransducer};
+use self::state_transducer::StateTransducer;
 
 /// An error indicating an invalid input sequence.
 #[repr(u8)]
@@ -24,49 +24,6 @@ pub enum Error {
     E01_10 = 0b_01_10,
     /// Invalid gray-code sequence [10, 01].
     E10_01 = 0b_10_01,
-}
-
-/// The movement detected by a quadrature decoder.
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub enum Movement {
-    /// Forward movement (i.e. channel A leads channel B).
-    Forward = 0,
-    /// Forward movement (i.e. channel A trails channel B).
-    Reverse = 1,
-}
-
-impl Movement {
-    /// Flips the direction of `self`.
-    pub fn flip(&mut self) {
-        *self = self.flipped()
-    }
-
-    /// Returns the direction of `self`, flipped.
-    pub fn flipped(self) -> Self {
-        match self {
-            Self::Forward => Self::Reverse,
-            Self::Reverse => Self::Forward,
-        }
-    }
-}
-
-impl From<Movement> for Output {
-    fn from(movement: Movement) -> Self {
-        match movement {
-            Movement::Forward => Self::F,
-            Movement::Reverse => Self::R,
-        }
-    }
-}
-
-impl From<Option<Movement>> for Output {
-    fn from(movement: Option<Movement>) -> Self {
-        match movement {
-            Some(movement) => movement.into(),
-            None => Self::N,
-        }
-    }
 }
 
 mod sealed {

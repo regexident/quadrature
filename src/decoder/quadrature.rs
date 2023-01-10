@@ -5,8 +5,51 @@ use core::marker::PhantomData;
 use crate::{
     state_transducer::{Input, Output},
     validator::InputValidator,
-    Error, FullStep, HalfStep, Movement, QuadStep, StateTransducer, StepMode,
+    Error, FullStep, HalfStep, QuadStep, StateTransducer, StepMode,
 };
+
+/// The movement detected by a quadrature decoder.
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum QuadratureMovement {
+    /// Channel A leads channel B, commonly describing a forwards movement.
+    AB = 0,
+    /// Channel B leads channel A, commonly describing a backwards movement.
+    BA = 1,
+}
+
+impl QuadratureMovement {
+    /// Flips the direction of `self`.
+    pub fn flip(&mut self) {
+        *self = self.flipped()
+    }
+
+    /// Returns the direction of `self`, flipped.
+    pub fn flipped(self) -> Self {
+        match self {
+            Self::AB => Self::BA,
+            Self::BA => Self::AB,
+        }
+    }
+}
+
+impl From<QuadratureMovement> for Output {
+    fn from(movement: QuadratureMovement) -> Self {
+        match movement {
+            QuadratureMovement::AB => Self::F,
+            QuadratureMovement::BA => Self::R,
+        }
+    }
+}
+
+impl From<Option<QuadratureMovement>> for Output {
+    fn from(movement: Option<QuadratureMovement>) -> Self {
+        match movement {
+            Some(movement) => movement.into(),
+            None => Self::N,
+        }
+    }
+}
 
 /// A robust quadrature decoder with support for multiple step-modes,
 /// based on which channel (A vs. B) is leading the other.
@@ -15,7 +58,7 @@ use crate::{
 ///                ┌ ─ ┐   ┌───┐   ┌───┐   ┌───┐   ┌ ─ ─ high
 ///            A           │   │   │   │   │                  
 ///              ─ ┘   └───┘   └───┘   └───┘   └ ─ ┘     low  
-/// Forward:                                                  
+/// AB:                                                  
 ///                  ┌ ─ ┐   ┌───┐   ┌───┐   ┌───┐   ┌ ─ high
 ///            B             │   │   │   │   │                
 ///              ─ ─ ┘   └───┘   └───┘   └───┘   └ ─ ┘   low  
@@ -23,7 +66,7 @@ use crate::{
 ///                  ┌ ─ ┐   ┌───┐   ┌───┐   ┌───┐   ┌ ─ high
 ///            A             │   │   │   │   │                
 ///              ─ ─ ┘   └───┘   └───┘   └───┘   └ ─ ┘   low  
-/// Reverse:                                                  
+/// BA:                                                  
 ///                ┌ ─ ┐   ┌───┐   ┌───┐   ┌───┐   ┌ ─ ─ high
 ///            B           │   │   │   │   │                  
 ///              ─ ┘   └───┘   └───┘   └───┘   └ ─ ┘     low  
@@ -86,7 +129,7 @@ where
     ///
     /// let mut decoder = QuadratureDecoder::<FullStep>::default();
     /// match decoder.update(a, b) {
-    ///     Ok(Some(movement)) => println!("Movement detected: {:?}.", movement),
+    ///     Ok(Some(movement)) => println!("QuadratureMovement detected: {:?}.", movement),
     ///     Ok(None) => println!("No movement detected."),
     ///     Err(error) => println!("Error detected: {:?}.", error),
     /// }
@@ -101,11 +144,11 @@ where
     ///
     /// let mut decoder = QuadratureDecoder::<FullStep>::default();
     /// match decoder.update(a, b).unwrap_or_default() {
-    ///     Some(movement) => println!("Movement detected: {:?}.", movement),
+    ///     Some(movement) => println!("QuadratureMovement detected: {:?}.", movement),
     ///     None => println!("No movement detected."),
     /// }
     /// ```
-    pub fn update(&mut self, a: bool, b: bool) -> Result<Option<Movement>, Error> {
+    pub fn update(&mut self, a: bool, b: bool) -> Result<Option<QuadratureMovement>, Error> {
         let input = Input::new(a, b);
 
         let validation_result = self.validator.validate(input);
@@ -117,8 +160,8 @@ where
                 Err(error)
             }
             (Ok(_), Output::N) => Ok(None),
-            (Ok(_), Output::F) => Ok(Some(Movement::Forward)),
-            (Ok(_), Output::R) => Ok(Some(Movement::Reverse)),
+            (Ok(_), Output::F) => Ok(Some(QuadratureMovement::AB)),
+            (Ok(_), Output::R) => Ok(Some(QuadratureMovement::BA)),
             (_, Output::E) => {
                 // Transducers are expected to not return error outputs since their states tend to
                 // be insufficient for reliable detection without false positives/negatives.

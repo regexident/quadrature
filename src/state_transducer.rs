@@ -52,9 +52,9 @@ impl Input {
 pub(crate) enum Output {
     /// Neutral
     N,
-    /// Forward
+    /// AB
     F,
-    /// Reverse
+    /// BA
     R,
     /// Error
     E,
@@ -88,12 +88,12 @@ impl Output {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub(crate) enum State {
     N0, // Neutral: 0/4 cycle
-    F1, // Forward: 1/4 cycle
-    F2, // Forward: 2/4 cycle
-    F3, // Forward: 3/4 cycle
-    R1, // Reverse: 1/4 cycle
-    R2, // Reverse: 2/4 cycle
-    R3, // Reverse: 3/4 cycle
+    F1, // A --> B: 1/4 cycle
+    F2, // A --> B: 2/4 cycle
+    F3, // A --> B: 3/4 cycle
+    R1, // B --> A: 1/4 cycle
+    R2, // B --> A: 2/4 cycle
+    R3, // B --> A: 3/4 cycle
     N2, // Neutral: 2/4 cycle
 }
 
