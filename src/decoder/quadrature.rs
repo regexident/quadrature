@@ -3,8 +3,9 @@
 use core::marker::PhantomData;
 
 use crate::{
-    state_transducer::Input, Error, FullStep, HalfStep, Movement, QuadStep, StateTransducer,
-    StepMode,
+    state_transducer::{Input, Output},
+    validator::InputValidator,
+    Error, FullStep, HalfStep, Movement, QuadStep, StateTransducer, StepMode,
 };
 
 /// A robust quadrature decoder with support for multiple step-modes,
@@ -30,33 +31,31 @@ use crate::{
 #[derive(Debug)]
 pub struct QuadratureDecoder<Mode> {
     transducer: StateTransducer<'static, 8, 4>,
+    validator: InputValidator,
     _phantom: PhantomData<Mode>,
 }
 
 impl Default for QuadratureDecoder<FullStep> {
     fn default() -> Self {
-        Self {
-            transducer: StateTransducer::new(&crate::state_transducer::full_step::TRANSITIONS),
-            _phantom: Default::default(),
-        }
+        Self::new(StateTransducer::new(
+            &crate::state_transducer::full_step::TRANSITIONS,
+        ))
     }
 }
 
 impl Default for QuadratureDecoder<HalfStep> {
     fn default() -> Self {
-        Self {
-            transducer: StateTransducer::new(&crate::state_transducer::half_step::TRANSITIONS),
-            _phantom: Default::default(),
-        }
+        Self::new(StateTransducer::new(
+            &crate::state_transducer::half_step::TRANSITIONS,
+        ))
     }
 }
 
 impl Default for QuadratureDecoder<QuadStep> {
     fn default() -> Self {
-        Self {
-            transducer: StateTransducer::new(&crate::state_transducer::quad_step::TRANSITIONS),
-            _phantom: Default::default(),
-        }
+        Self::new(StateTransducer::new(
+            &crate::state_transducer::quad_step::TRANSITIONS,
+        ))
     }
 }
 
@@ -64,6 +63,14 @@ impl<Mode> QuadratureDecoder<Mode>
 where
     Mode: StepMode,
 {
+    pub(crate) fn new(transducer: StateTransducer<'static, 8, 4>) -> Self {
+        Self {
+            transducer,
+            validator: Default::default(),
+            _phantom: PhantomData,
+        }
+    }
+
     /// Updates the decoder's state based on the given `a` and `b` pulse train readings,
     /// returning the direction if a movement was detected, `None` if no movement was detected,
     /// or `Err(_)` if an invalid input (i.e. a positional "jump") was detected.
@@ -99,12 +106,31 @@ where
     /// }
     /// ```
     pub fn update(&mut self, a: bool, b: bool) -> Result<Option<Movement>, Error> {
-        self.transducer.step(Input::new(a, b)).into()
+        let input = Input::new(a, b);
+
+        let validation_result = self.validator.validate(input);
+        let transducer_output = self.transducer.step(input);
+
+        match (validation_result, transducer_output) {
+            (Err(error), output) => {
+                debug_assert_eq!(output, Output::N, "Expected `None` output from transducer.");
+                Err(error)
+            }
+            (Ok(_), Output::N) => Ok(None),
+            (Ok(_), Output::F) => Ok(Some(Movement::Forward)),
+            (Ok(_), Output::R) => Ok(Some(Movement::Reverse)),
+            (_, Output::E) => {
+                // Transducers are expected to not return error outputs since their states tend to
+                // be insufficient for reliable detection without false positives/negatives.
+                panic!("Unexpected error output from transducer.")
+            }
+        }
     }
 
     /// Resets the decoder to its initial state.
     pub fn reset(&mut self) {
         self.transducer.reset();
+        self.validator.reset();
     }
 
     /// The decoder's number of pulses per (quadrature) cycle (PPC).

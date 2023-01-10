@@ -5,13 +5,26 @@
 
 mod decoder;
 mod state_transducer;
+mod validator;
 
 pub use self::decoder::QuadratureDecoder;
 
 use self::state_transducer::{Output, StateTransducer};
 
-/// An error indicating an inconsistency between two channel-value reads.
-pub struct Error;
+/// An error indicating an invalid input sequence.
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[allow(non_camel_case_types)]
+pub enum Error {
+    /// Invalid gray-code sequence [00, 11].
+    E00_11 = 0b_00_11,
+    /// Invalid gray-code sequence [11, 00].
+    E11_00 = 0b_11_00,
+    /// Invalid gray-code sequence [01, 10].
+    E01_10 = 0b_01_10,
+    /// Invalid gray-code sequence [10, 01].
+    E10_01 = 0b_10_01,
+}
 
 /// The movement detected by a quadrature decoder.
 #[repr(u8)]
@@ -52,17 +65,6 @@ impl From<Option<Movement>> for Output {
         match movement {
             Some(movement) => movement.into(),
             None => Self::N,
-        }
-    }
-}
-
-impl From<Output> for Result<Option<Movement>, Error> {
-    fn from(output: Output) -> Self {
-        match output {
-            Output::N => Ok(None),
-            Output::F => Ok(Some(Movement::Forward)),
-            Output::R => Ok(Some(Movement::Reverse)),
-            Output::E => Err(Error),
         }
     }
 }

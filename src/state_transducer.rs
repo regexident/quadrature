@@ -9,22 +9,35 @@ pub(crate) mod quad_step;
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum Input {
-    B00,
-    B01,
-    B10,
-    B11,
+    A0B0,
+    A0B1,
+    A1B0,
+    A1B1,
 }
 
 impl Input {
-    const BITS: usize = 2;
-    const MASK: u8 = (1 << Self::BITS) - 1;
-
     pub(crate) const fn new(a: bool, b: bool) -> Self {
         match (a, b) {
-            (false, false) => Self::B00,
-            (false, true) => Self::B01,
-            (true, false) => Self::B10,
-            (true, true) => Self::B11,
+            (false, false) => Self::A0B0,
+            (false, true) => Self::A0B1,
+            (true, false) => Self::A1B0,
+            (true, true) => Self::A1B1,
+        }
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) const fn a(&self) -> bool {
+        match self {
+            Input::A0B0 | Input::A0B1 => false,
+            Input::A1B0 | Input::A1B1 => true,
+        }
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) const fn b(&self) -> bool {
+        match self {
+            Input::A0B0 | Input::A1B0 => false,
+            Input::A0B1 | Input::A1B1 => true,
         }
     }
 
@@ -161,7 +174,6 @@ pub(crate) type Transitions<const STATES: usize, const INPUTS: usize> =
 #[derive(Debug)]
 pub(crate) struct StateTransducer<'a, const STATES: usize, const INPUTS: usize> {
     state: State,
-    last_input: Input,
     transitions: &'a Transitions<STATES, INPUTS>,
 }
 
@@ -171,14 +183,17 @@ impl<'a, const STATES: usize, const INPUTS: usize> StateTransducer<'a, STATES, I
     pub(crate) const fn new(transitions: &'a Transitions<STATES, INPUTS>) -> Self {
         Self {
             transitions,
-            last_input: Input::B11,
             state: Self::INITIAL_STATE,
         }
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn state(&self) -> State {
+        self.state
+    }
+
     pub(crate) fn reset(&mut self) {
         self.state = State::N0;
-        self.last_input = Input::B11;
     }
 
     pub(crate) fn step(&mut self, input: Input) -> Output {
@@ -186,33 +201,15 @@ impl<'a, const STATES: usize, const INPUTS: usize> StateTransducer<'a, STATES, I
         let input_index = input.bits() as usize;
         let transition = self.transitions[state_index][input_index];
 
-        // Check for differences between inputs:
-        let binary_diff = (self.last_input.bits() ^ input.bits()) & Input::MASK;
-
-        // Valid gray-code differs by at most one bit between adjacent values:
-        let is_valid_graycode = binary_diff < 0b11;
-
-        // #[cfg(test)]
-        // println!("diff: {:#02b} => {}", binary_diff, is_valid);
-
-        self.last_input = input;
-
         self.state = transition.state();
+        let output = transition.output();
 
-        if is_valid_graycode {
-            let output = transition.output();
+        debug_assert_ne!(
+            output,
+            Output::E,
+            "Transitions should not produce error outputs."
+        );
 
-            #[cfg(test)]
-            debug_assert_ne!(
-                output,
-                Output::E,
-                "Transitions should not produce error outputs."
-            );
-
-            #[allow(clippy::let_and_return)]
-            output
-        } else {
-            Output::E
-        }
+        output
     }
 }

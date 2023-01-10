@@ -41,7 +41,7 @@ pub(crate) static TRANSITIONS: Transitions<8, 4> = {
         };
     }
 
-    // columns: `B00`, `B01`, `B10`, `B11`
+    // columns: `A0B0`, `A0B1`, `A1B0`, `A1B1`
     [
         [t!(N0, N), t!(F1, N), t!(R1, N), t!(N0, N)], // row: `N0`
         [t!(F2, N), t!(F1, N), t!(N0, N), t!(N0, N)], // row: `F1`
@@ -58,33 +58,43 @@ pub(crate) static TRANSITIONS: Transitions<8, 4> = {
 
 #[cfg(test)]
 mod tests {
-    use crate::state_transducer::{Input::*, Output::*, StateTransducer};
+    use crate::{
+        state_transducer::Input::{self, *},
+        Error, FullStep,
+        Movement::{self, *},
+        QuadratureDecoder,
+    };
 
-    use super::*;
+    type Decoder = QuadratureDecoder<FullStep>;
+
+    fn update(decoder: &mut Decoder, input: Input) -> Result<Option<Movement>, Error> {
+        decoder.update(input.a(), input.b())
+    }
 
     mod clean {
+
         use super::*;
 
         #[test]
         fn forwards() {
-            let mut transducer = StateTransducer::new(&TRANSITIONS);
+            let mut decoder = Decoder::default();
 
             // Full cycle without redundant inputs:
-            assert_eq!(transducer.step(B01), N);
-            assert_eq!(transducer.step(B00), N);
-            assert_eq!(transducer.step(B10), N);
-            assert_eq!(transducer.step(B11), F);
+            assert_eq!(update(&mut decoder, A0B1), Ok(None));
+            assert_eq!(update(&mut decoder, A0B0), Ok(None));
+            assert_eq!(update(&mut decoder, A1B0), Ok(None));
+            assert_eq!(update(&mut decoder, A1B1), Ok(Some(Forward)));
         }
 
         #[test]
         fn backwards() {
-            let mut transducer = StateTransducer::new(&TRANSITIONS);
+            let mut decoder = Decoder::default();
 
             // Full cycle without redundant inputs:
-            assert_eq!(transducer.step(B10), N);
-            assert_eq!(transducer.step(B00), N);
-            assert_eq!(transducer.step(B01), N);
-            assert_eq!(transducer.step(B11), R);
+            assert_eq!(update(&mut decoder, A1B0), Ok(None));
+            assert_eq!(update(&mut decoder, A0B0), Ok(None));
+            assert_eq!(update(&mut decoder, A0B1), Ok(None));
+            assert_eq!(update(&mut decoder, A1B1), Ok(Some(Reverse)));
         }
     }
 
@@ -96,28 +106,28 @@ mod tests {
 
             #[test]
             fn forwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
                 // Full cycle with block of redundant inputs:
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B00), N); // Redundant input
-                assert_eq!(transducer.step(B00), N); // Redundant input
-                assert_eq!(transducer.step(B00), N); // Redundant input
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B11), F);
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
+                assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
+                assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Forward)));
             }
 
             #[test]
             fn backwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
                 // Full cycle with block of redundant inputs:
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B00), N); // Redundant input
-                assert_eq!(transducer.step(B00), N); // Redundant input
-                assert_eq!(transducer.step(B00), N); // Redundant input
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B11), R);
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
+                assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
+                assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Reverse)));
             }
         }
 
@@ -126,30 +136,30 @@ mod tests {
 
             #[test]
             fn forwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
                 // Full cycle with alternating redundant inputs:
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B01), N); // Redundant input
-                assert_eq!(transducer.step(B00), N);
-                assert_eq!(transducer.step(B00), N); // Redundant input
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B10), N); // Redundant input
-                assert_eq!(transducer.step(B11), F);
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A0B1), Ok(None)); // Redundant input
+                assert_eq!(update(&mut decoder, A0B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A1B0), Ok(None)); // Redundant input
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Forward)));
             }
 
             #[test]
             fn backwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
                 // Full cycle with alternating redundant inputs:
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B10), N); // Redundant input
-                assert_eq!(transducer.step(B00), N);
-                assert_eq!(transducer.step(B00), N); // Redundant input
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B01), N); // Redundant input
-                assert_eq!(transducer.step(B11), R);
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A1B0), Ok(None)); // Redundant input
+                assert_eq!(update(&mut decoder, A0B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A0B1), Ok(None)); // Redundant input
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Reverse)));
             }
         }
     }
@@ -162,22 +172,22 @@ mod tests {
 
             #[test]
             fn forwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B00), N);
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B11), N);
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A0B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
 
             #[test]
             fn backwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B00), N);
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B11), N);
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B0), Ok(None));
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
         }
 
@@ -186,18 +196,18 @@ mod tests {
 
             #[test]
             fn forwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B11), N);
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
 
             #[test]
             fn backwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B11), N);
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
         }
     }
@@ -210,40 +220,40 @@ mod tests {
 
             #[test]
             fn forwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B00), N);
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B01), E); // Noise input
-                assert_eq!(transducer.step(B11), N);
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A0B0), Ok(None));
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B1), Err(Error::E10_01)); // Noise input
+                assert_eq!(update(&mut decoder, A1B1), Ok(None));
 
-                transducer.reset();
+                decoder.reset();
 
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B10), E); // Noise input
-                assert_eq!(transducer.step(B00), N);
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B11), N);
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A1B0), Err(Error::E01_10)); // Noise input
+                assert_eq!(update(&mut decoder, A0B0), Ok(None));
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
 
             #[test]
             fn backwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B00), N);
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B10), E); // Noise input
-                assert_eq!(transducer.step(B11), N);
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A1B0), Err(Error::E01_10)); // Noise input
+                assert_eq!(update(&mut decoder, A1B1), Ok(None));
 
-                transducer.reset();
+                decoder.reset();
 
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B01), E); // Noise input
-                assert_eq!(transducer.step(B00), N);
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B11), N);
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B1), Err(Error::E10_01)); // Noise input
+                assert_eq!(update(&mut decoder, A0B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
         }
 
@@ -252,26 +262,26 @@ mod tests {
 
             #[test]
             fn forwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B10), E); // Noise input
-                assert_eq!(transducer.step(B00), N);
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B01), E); // Noise input
-                assert_eq!(transducer.step(B11), N);
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A1B0), Err(Error::E01_10)); // Noise input
+                assert_eq!(update(&mut decoder, A0B0), Ok(None));
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B1), Err(Error::E10_01)); // Noise input
+                assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
 
             #[test]
             fn backwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B01), E); // Noise input
-                assert_eq!(transducer.step(B00), N);
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B10), E); // Noise input
-                assert_eq!(transducer.step(B11), N);
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B1), Err(Error::E10_01)); // Noise input
+                assert_eq!(update(&mut decoder, A0B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A1B0), Err(Error::E01_10)); // Noise input
+                assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
         }
 
@@ -280,30 +290,30 @@ mod tests {
 
             #[test]
             fn forwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
-                assert_eq!(transducer.step(B00), E); // Noise input
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B10), E); // Noise input
-                assert_eq!(transducer.step(B00), N);
-                assert_eq!(transducer.step(B11), E); // Noise input
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B01), E); // Noise input
-                assert_eq!(transducer.step(B11), N);
+                assert_eq!(update(&mut decoder, A0B0), Err(Error::E11_00)); // Noise input
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A1B0), Err(Error::E01_10)); // Noise input
+                assert_eq!(update(&mut decoder, A0B0), Ok(None));
+                assert_eq!(update(&mut decoder, A1B1), Err(Error::E00_11)); // Noise input
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B1), Err(Error::E10_01)); // Noise input
+                assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
 
             #[test]
             fn backwards() {
-                let mut transducer = StateTransducer::new(&TRANSITIONS);
+                let mut decoder = Decoder::default();
 
-                assert_eq!(transducer.step(B00), E); // Noise input
-                assert_eq!(transducer.step(B10), N);
-                assert_eq!(transducer.step(B01), E); // Noise input
-                assert_eq!(transducer.step(B00), N);
-                assert_eq!(transducer.step(B11), E); // Noise input
-                assert_eq!(transducer.step(B01), N);
-                assert_eq!(transducer.step(B10), E); // Noise input
-                assert_eq!(transducer.step(B11), N);
+                assert_eq!(update(&mut decoder, A0B0), Err(Error::E11_00)); // Noise input
+                assert_eq!(update(&mut decoder, A1B0), Ok(None));
+                assert_eq!(update(&mut decoder, A0B1), Err(Error::E10_01)); // Noise input
+                assert_eq!(update(&mut decoder, A0B0), Ok(None));
+                assert_eq!(update(&mut decoder, A1B1), Err(Error::E00_11)); // Noise input
+                assert_eq!(update(&mut decoder, A0B1), Ok(None));
+                assert_eq!(update(&mut decoder, A1B0), Err(Error::E01_10)); // Noise input
+                assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
         }
     }
