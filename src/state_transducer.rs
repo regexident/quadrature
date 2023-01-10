@@ -192,6 +192,11 @@ impl<'a, const STATES: usize, const INPUTS: usize> StateTransducer<'a, STATES, I
         self.state
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn set_state(&mut self, state: State) {
+        self.state = state;
+    }
+
     pub(crate) fn reset(&mut self) {
         self.state = State::N0;
     }

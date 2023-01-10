@@ -67,7 +67,11 @@ pub(crate) static TRANSITIONS: Transitions<8, 4> = {
 #[cfg(test)]
 mod tests {
     use crate::{
-        state_transducer::Input::{self, *},
+        state_transducer::{
+            quad_step::TRANSITIONS,
+            Input::{self, *},
+            Output, State, StateTransducer,
+        },
         Error, QuadStep, QuadratureDecoder,
         QuadratureMovement::{self, *},
     };
@@ -76,6 +80,36 @@ mod tests {
 
     fn update(decoder: &mut Decoder, input: Input) -> Result<Option<QuadratureMovement>, Error> {
         decoder.update(input.a(), input.b())
+    }
+
+    #[test]
+    fn initial_state() {
+        let transducer = StateTransducer::new(&TRANSITIONS);
+
+        assert_eq!(transducer.state(), State::N0);
+    }
+
+    #[test]
+    fn identity() {
+        let mut transducer = StateTransducer::new(&TRANSITIONS);
+
+        let scenarios = [
+            (State::N0, Input::A1B1),
+            (State::F1, Input::A0B1),
+            (State::F2, Input::A1B0),
+            // State::F3 is not used by the quad-step transducer.
+            (State::R1, Input::A1B0),
+            (State::R2, Input::A0B1),
+            // State::R3 is not used by the quad-step transducer.
+            (State::N2, Input::A0B0),
+        ];
+
+        for (state, input) in scenarios {
+            transducer.set_state(state);
+            let output = transducer.step(input);
+            assert_eq!(output, Output::N);
+            assert_eq!(transducer.state(), state);
+        }
     }
 
     mod clean {
