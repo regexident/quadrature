@@ -83,7 +83,7 @@ where
     ///
     /// let mut decoder = LinearDecoder::<FullStep>::default();
     /// match decoder.update(a, b) {
-    ///     Ok(Some(movement)) => println!("PhaseShift detected: {:?}.", movement),
+    ///     Ok(Some(movement)) => println!("Phase-shift detected: {:?}.", movement),
     ///     Ok(None) => println!("No movement detected."),
     ///     Err(error) => println!("Error detected: {:?}.", error),
     /// }
@@ -98,7 +98,7 @@ where
     ///
     /// let mut decoder = LinearDecoder::<FullStep>::default();
     /// match decoder.update(a, b).unwrap_or_default() {
-    ///     Some(movement) => println!("PhaseShift detected: {:?}.", movement),
+    ///     Some(movement) => println!("Phase-shift detected: {:?}.", movement),
     ///     None => println!("No movement detected."),
     /// }
     /// ```
@@ -115,7 +115,7 @@ where
 
     /// The decoder's number of pulses per (quadrature) cycle (PPC).
     ///
-    /// As an example, consider the effectively pulses per revolution (PPR)
+    /// As an example, consider the effective pulses per revolution (PPR)
     /// of a rotary encoder with 100 cycles per revolution (CPR):
     ///
     /// - A step mode with 1 pulse per cycle (e.g. `LinearDecoder<FullStep>`) results in effectively 100 pulses per revolution (100 PPR).

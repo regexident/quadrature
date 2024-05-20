@@ -103,7 +103,7 @@ where
 
     /// The encoder's number of pulses per (quadrature) cycle (PPC).
     ///
-    /// As an example, consider the effectively pulses per revolution (PPR)
+    /// As an example, consider the effective pulses per revolution (PPR)
     /// of a rotary encoder with 100 cycles per revolution (CPR):
     ///
     /// - A step mode with 1 pulse per cycle (e.g. `LinearEncoder<FullStep>`) results in effectively 100 pulses per revolution (100 PPR).
