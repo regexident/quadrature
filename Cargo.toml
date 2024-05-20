@@ -1,2 +1,3 @@
 [workspace]
 members = ["quadrature-decoder", "quadrature-encoder"]
+resolver = "2"
