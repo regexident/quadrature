@@ -1,6 +1,7 @@
 //! A robust linear quadrature encoder driver with support for multiple step-modes.
 
-use embedded_hal::digital::v2::InputPin;
+use embedded_hal::digital::InputPin;
+
 use quadrature_decoder::{Error, LinearDecoder, LinearMovement, StepMode};
 
 /// A robust linear quadrature encoder with support for multiple step-modes.
@@ -48,7 +49,7 @@ where
     /// you would either call `update()` directly:
     ///
     /// ```rust
-    /// use embedded_hal_mock::pin::{
+    /// use embedded_hal_mock::eh1::pin::{
     ///     Mock as PinMock,
     ///     Transaction as PinTransaction,
     ///     State as PinState
@@ -66,12 +67,16 @@ where
     ///     Ok(None) => println!("No movement detected."),
     ///     Err(error) => println!("Error detected: {:?}.", error),
     /// }
+    ///
+    /// let (mut pin_clk, mut pin_dt) = encoder.release();
+    /// pin_clk.done();
+    /// pin_dt.done();
     /// ```
     ///
     /// Or fall back to `None` in case of `Err(_)` by use of `.unwrap_or_default()`:
     ///
     /// ```rust
-    /// use embedded_hal_mock::pin::{
+    /// use embedded_hal_mock::eh1::pin::{
     ///     Mock as PinMock,
     ///     Transaction as PinTransaction,
     ///     State as PinState
@@ -88,6 +93,10 @@ where
     ///     Some(movement) => println!("Movement detected: {:?}.", movement),
     ///     None => println!("No movement detected."),
     /// }
+    ///
+    /// let (mut pin_clk, mut pin_dt) = encoder.release();
+    /// pin_clk.done();
+    /// pin_dt.done();
     /// ```
     pub fn poll(&mut self) -> Result<Option<LinearMovement>, Error> {
         let a = self.pin_clk.is_high().unwrap_or_default();
