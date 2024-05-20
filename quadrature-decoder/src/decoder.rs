@@ -1,11 +1,6 @@
-//! Quadrature-based decoders.
+//! Quadrature-based decoder.
 
-mod linear;
-mod quadrature;
-mod rotary;
+mod incremental;
+mod indexed;
 
-pub use self::{
-    linear::{LinearDecoder, LinearMovement},
-    quadrature::{QuadratureDecoder, QuadratureMovement},
-    rotary::{RotaryDecoder, RotaryMovement},
-};
+pub use self::{incremental::IncrementalDecoder, indexed::IndexedIncrementalDecoder};

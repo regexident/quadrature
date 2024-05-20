@@ -51,13 +51,13 @@ impl Input {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum Output {
     /// Neutral
-    N,
+    N = 0b_00,
     /// AB
-    F,
+    AB = 0b_01,
     /// BA
-    R,
+    BA = 0b_10,
     /// Error
-    E,
+    E = 0b_11,
 }
 
 impl Output {
@@ -67,8 +67,8 @@ impl Output {
     pub(crate) const fn from_bits(bits: u8) -> Option<Self> {
         match bits {
             x if x == (Output::N as u8) => Some(Output::N),
-            x if x == (Output::F as u8) => Some(Output::F),
-            x if x == (Output::R as u8) => Some(Output::R),
+            x if x == (Output::AB as u8) => Some(Output::AB),
+            x if x == (Output::BA as u8) => Some(Output::BA),
             x if x == (Output::E as u8) => Some(Output::E),
             _ => None,
         }
@@ -170,7 +170,7 @@ pub(crate) type Transitions<const STATES: usize, const INPUTS: usize> =
 /// that maps between two sets of symbols: inputs and outputs.
 ///
 /// The inputs in this particular use-case are the concatenated 2-bit binary states
-/// corresponding to the readings from the A and B pulse trains of a quadrature encoder.
+/// corresponding to the readings from the A and B pulse trains (aka channels) of a quadrature encoder.
 #[derive(Debug)]
 pub(crate) struct StateTransducer<'a, const STATES: usize, const INPUTS: usize> {
     state: State,

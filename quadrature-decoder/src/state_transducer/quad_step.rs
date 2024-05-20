@@ -49,18 +49,18 @@ pub(crate) static TRANSITIONS: Transitions<8, 4> = {
 
     // columns: `A0B0`, `A0B1`, `A1B0`, `A1B1`
     [
-        [t!(N2, N), t!(F1, F), t!(R1, R), t!(N0, N)], // row: `N0`
-        [t!(N2, F), t!(F1, N), t!(N0, N), t!(N0, R)], // row: `F1`
-        [t!(N2, R), t!(N2, N), t!(F2, N), t!(N0, F)], // row: `F2`
+        [t!(N2, N), t!(F1, AB), t!(R1, BA), t!(N0, N)], // row: `N0`
+        [t!(N2, AB), t!(F1, N), t!(N0, N), t!(N0, BA)], // row: `F1`
+        [t!(N2, BA), t!(N2, N), t!(F2, N), t!(N0, AB)], // row: `F2`
         // This row is unused in half-step mode, but needs to be provided
         // as it expects a transition matrix of certain dimensions:
         [t!(N0, E), t!(N0, E), t!(N0, E), t!(N0, E)], // row: `F3`
-        [t!(N2, R), t!(N0, N), t!(R1, N), t!(N0, F)], // row: `R1`
-        [t!(N2, F), t!(R2, N), t!(N2, N), t!(N0, R)], // row: `R2`
+        [t!(N2, BA), t!(N0, N), t!(R1, N), t!(N0, AB)], // row: `R1`
+        [t!(N2, AB), t!(R2, N), t!(N2, N), t!(N0, BA)], // row: `R2`
         // This row is unused in half-step mode, but needs to be provided
         // as it expects a transition matrix of certain dimensions:
         [t!(N0, E), t!(N0, E), t!(N0, E), t!(N0, E)], // row: `R3`
-        [t!(N2, N), t!(R2, R), t!(F2, F), t!(N0, N)], // row: `N2`
+        [t!(N2, N), t!(R2, BA), t!(F2, AB), t!(N0, N)], // row: `N2`
     ]
 };
 
@@ -72,13 +72,13 @@ mod tests {
             Input::{self, *},
             Output, State, StateTransducer,
         },
-        Error, QuadStep, QuadratureDecoder,
-        QuadratureMovement::{self, *},
+        Error, IncrementalDecoder, QuadStep,
+        Change::{self, *},
     };
 
-    type Decoder = QuadratureDecoder<QuadStep>;
+    type Decoder = IncrementalDecoder<QuadStep>;
 
-    fn update(decoder: &mut Decoder, input: Input) -> Result<Option<QuadratureMovement>, Error> {
+    fn update(decoder: &mut Decoder, input: Input) -> Result<Option<Change>, Error> {
         decoder.update(input.a(), input.b())
     }
 
@@ -120,10 +120,10 @@ mod tests {
             let mut decoder = Decoder::default();
 
             // Full cycle without redundant inputs:
-            assert_eq!(update(&mut decoder, A0B1), Ok(Some(AB)));
-            assert_eq!(update(&mut decoder, A0B0), Ok(Some(AB)));
-            assert_eq!(update(&mut decoder, A1B0), Ok(Some(AB)));
-            assert_eq!(update(&mut decoder, A1B1), Ok(Some(AB)));
+            assert_eq!(update(&mut decoder, A0B1), Ok(Some(Positive)));
+            assert_eq!(update(&mut decoder, A0B0), Ok(Some(Positive)));
+            assert_eq!(update(&mut decoder, A1B0), Ok(Some(Positive)));
+            assert_eq!(update(&mut decoder, A1B1), Ok(Some(Positive)));
         }
 
         #[test]
@@ -131,10 +131,10 @@ mod tests {
             let mut decoder = Decoder::default();
 
             // Full cycle without reduBdant inputs:
-            assert_eq!(update(&mut decoder, A1B0), Ok(Some(BA)));
-            assert_eq!(update(&mut decoder, A0B0), Ok(Some(BA)));
-            assert_eq!(update(&mut decoder, A0B1), Ok(Some(BA)));
-            assert_eq!(update(&mut decoder, A1B1), Ok(Some(BA)));
+            assert_eq!(update(&mut decoder, A1B0), Ok(Some(Negative)));
+            assert_eq!(update(&mut decoder, A0B0), Ok(Some(Negative)));
+            assert_eq!(update(&mut decoder, A0B1), Ok(Some(Negative)));
+            assert_eq!(update(&mut decoder, A1B1), Ok(Some(Negative)));
         }
     }
 
@@ -149,12 +149,12 @@ mod tests {
                 let mut decoder = Decoder::default();
 
                 // Full cycle with block of redundant inputs:
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(AB)));
-                assert_eq!(update(&mut decoder, A0B0), Ok(Some(AB))); // Redundant input
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Positive)));
+                assert_eq!(update(&mut decoder, A0B0), Ok(Some(Positive))); // Redundant input
                 assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
                 assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(AB)));
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Positive)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Positive)));
             }
 
             #[test]
@@ -162,12 +162,12 @@ mod tests {
                 let mut decoder = Decoder::default();
 
                 // Full cycle with block of redundant inputs:
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(BA)));
-                assert_eq!(update(&mut decoder, A0B0), Ok(Some(BA))); // Redundant input
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Negative)));
+                assert_eq!(update(&mut decoder, A0B0), Ok(Some(Negative))); // Redundant input
                 assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
                 assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(BA)));
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Negative)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Negative)));
             }
         }
 
@@ -179,13 +179,13 @@ mod tests {
                 let mut decoder = Decoder::default();
 
                 // Full cycle with alternating redundant inputs:
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Positive)));
                 assert_eq!(update(&mut decoder, A0B1), Ok(None)); // Redundant input
-                assert_eq!(update(&mut decoder, A0B0), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A0B0), Ok(Some(Positive)));
                 assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Positive)));
                 assert_eq!(update(&mut decoder, A1B0), Ok(None)); // Redundant input
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Positive)));
             }
 
             #[test]
@@ -193,13 +193,13 @@ mod tests {
                 let mut decoder = Decoder::default();
 
                 // Full cycle with alternating redundant inputs:
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Negative)));
                 assert_eq!(update(&mut decoder, A1B0), Ok(None)); // Redundant input
-                assert_eq!(update(&mut decoder, A0B0), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A0B0), Ok(Some(Negative)));
                 assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Negative)));
                 assert_eq!(update(&mut decoder, A0B1), Ok(None)); // Redundant input
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Negative)));
             }
         }
     }
@@ -214,20 +214,20 @@ mod tests {
             fn forwards() {
                 let mut decoder = Decoder::default();
 
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(AB)));
-                assert_eq!(update(&mut decoder, A0B0), Ok(Some(AB)));
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(BA)));
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Positive)));
+                assert_eq!(update(&mut decoder, A0B0), Ok(Some(Positive)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Negative)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Negative)));
             }
 
             #[test]
             fn backwards() {
                 let mut decoder = Decoder::default();
 
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(BA)));
-                assert_eq!(update(&mut decoder, A0B0), Ok(Some(BA)));
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(AB)));
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Negative)));
+                assert_eq!(update(&mut decoder, A0B0), Ok(Some(Negative)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Positive)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Positive)));
             }
         }
 
@@ -238,16 +238,16 @@ mod tests {
             fn forwards() {
                 let mut decoder = Decoder::default();
 
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(AB)));
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Positive)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Negative)));
             }
 
             #[test]
             fn backwards() {
                 let mut decoder = Decoder::default();
 
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(BA)));
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Negative)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Positive)));
             }
         }
     }
@@ -262,38 +262,38 @@ mod tests {
             fn forwards() {
                 let mut decoder = Decoder::default();
 
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(AB)));
-                assert_eq!(update(&mut decoder, A0B0), Ok(Some(AB)));
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Positive)));
+                assert_eq!(update(&mut decoder, A0B0), Ok(Some(Positive)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Positive)));
                 assert_eq!(update(&mut decoder, A0B1), Err(Error::E10_01)); // Noise input
                 assert_eq!(update(&mut decoder, A1B1), Ok(None));
 
                 decoder.reset();
 
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Positive)));
                 assert_eq!(update(&mut decoder, A1B0), Err(Error::E01_10)); // Noise input
                 assert_eq!(update(&mut decoder, A0B0), Ok(None));
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(AB)));
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Positive)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Positive)));
             }
 
             #[test]
             fn backwards() {
                 let mut decoder = Decoder::default();
 
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(BA)));
-                assert_eq!(update(&mut decoder, A0B0), Ok(Some(BA)));
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Negative)));
+                assert_eq!(update(&mut decoder, A0B0), Ok(Some(Negative)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Negative)));
                 assert_eq!(update(&mut decoder, A1B0), Err(Error::E01_10)); // Noise input
                 assert_eq!(update(&mut decoder, A1B1), Ok(None));
 
                 decoder.reset();
 
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Negative)));
                 assert_eq!(update(&mut decoder, A0B1), Err(Error::E10_01)); // Noise input
                 assert_eq!(update(&mut decoder, A0B0), Ok(None));
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(BA)));
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Negative)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Negative)));
             }
         }
 
@@ -304,10 +304,10 @@ mod tests {
             fn forwards() {
                 let mut decoder = Decoder::default();
 
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Positive)));
                 assert_eq!(update(&mut decoder, A1B0), Err(Error::E01_10)); // Noise input
                 assert_eq!(update(&mut decoder, A0B0), Ok(None));
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Positive)));
                 assert_eq!(update(&mut decoder, A0B1), Err(Error::E10_01)); // Noise input
                 assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
@@ -316,10 +316,10 @@ mod tests {
             fn backwards() {
                 let mut decoder = Decoder::default();
 
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Negative)));
                 assert_eq!(update(&mut decoder, A0B1), Err(Error::E10_01)); // Noise input
                 assert_eq!(update(&mut decoder, A0B0), Ok(None));
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Negative)));
                 assert_eq!(update(&mut decoder, A1B0), Err(Error::E01_10)); // Noise input
                 assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
@@ -333,11 +333,11 @@ mod tests {
                 let mut decoder = Decoder::default();
 
                 assert_eq!(update(&mut decoder, A0B0), Err(Error::E11_00)); // Noise input
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Negative)));
                 assert_eq!(update(&mut decoder, A1B0), Err(Error::E01_10)); // Noise input
                 assert_eq!(update(&mut decoder, A0B0), Ok(None));
                 assert_eq!(update(&mut decoder, A1B1), Err(Error::E00_11)); // Noise input
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Negative)));
                 assert_eq!(update(&mut decoder, A0B1), Err(Error::E10_01)); // Noise input
                 assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }
@@ -347,11 +347,11 @@ mod tests {
                 let mut decoder = Decoder::default();
 
                 assert_eq!(update(&mut decoder, A0B0), Err(Error::E11_00)); // Noise input
-                assert_eq!(update(&mut decoder, A1B0), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A1B0), Ok(Some(Positive)));
                 assert_eq!(update(&mut decoder, A0B1), Err(Error::E10_01)); // Noise input
                 assert_eq!(update(&mut decoder, A0B0), Ok(None));
                 assert_eq!(update(&mut decoder, A1B1), Err(Error::E00_11)); // Noise input
-                assert_eq!(update(&mut decoder, A0B1), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A0B1), Ok(Some(Positive)));
                 assert_eq!(update(&mut decoder, A1B0), Err(Error::E01_10)); // Noise input
                 assert_eq!(update(&mut decoder, A1B1), Ok(None));
             }

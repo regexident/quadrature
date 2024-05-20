@@ -1,6 +1,9 @@
 //! Quadrature-based encoder drivers.
 
-mod linear;
-mod rotary;
+mod incremental;
+mod indexed;
 
-pub use self::{linear::LinearEncoder, rotary::RotaryEncoder};
+pub use self::{
+    incremental::{IncrementalEncoder, LinearEncoder, RotaryEncoder},
+    indexed::{IndexedIncrementalEncoder, IndexedLinearEncoder, IndexedRotaryEncoder},
+};

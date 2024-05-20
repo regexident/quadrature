@@ -1,6 +1,6 @@
 use crate::{state_transducer::Input, Error};
 
-/// A validator for checking gray-code conformance of inputs.
+/// A validator for checking conformance of inputs against quadrature protocol.
 #[derive(Debug)]
 pub(crate) struct InputValidator {
     input: Input,

@@ -46,10 +46,10 @@ pub(crate) static TRANSITIONS: Transitions<8, 4> = {
         [t!(N0, N), t!(F1, N), t!(R1, N), t!(N0, N)], // row: `N0`
         [t!(F2, N), t!(F1, N), t!(N0, N), t!(N0, N)], // row: `F1`
         [t!(F2, N), t!(F1, N), t!(F3, N), t!(N0, N)], // row: `F2`
-        [t!(F2, N), t!(N0, N), t!(F3, N), t!(N0, F)], // row: `F3`
+        [t!(F2, N), t!(N0, N), t!(F3, N), t!(N0, AB)], // row: `F3`
         [t!(R2, N), t!(N0, N), t!(R1, N), t!(N0, N)], // row: `R1`
         [t!(R2, N), t!(R3, N), t!(R1, N), t!(N0, N)], // row: `R2`
-        [t!(R2, N), t!(R3, N), t!(N0, N), t!(N0, R)], // row: `R3`
+        [t!(R2, N), t!(R3, N), t!(N0, N), t!(N0, BA)], // row: `R3`
         // This row is unused in full-step mode, but needs to be provided
         // as it expects a transition matrix of certain dimensions:
         [t!(N0, E), t!(N0, E), t!(N0, E), t!(N0, E)], // row: `N2`
@@ -64,13 +64,13 @@ mod tests {
             Input::{self, *},
             Output, State, StateTransducer,
         },
-        Error, FullStep, QuadratureDecoder,
-        QuadratureMovement::{self, *},
+        Error, FullStep, IncrementalDecoder,
+        Change::{self, *},
     };
 
-    type Decoder = QuadratureDecoder<FullStep>;
+    type Decoder = IncrementalDecoder<FullStep>;
 
-    fn update(decoder: &mut Decoder, input: Input) -> Result<Option<QuadratureMovement>, Error> {
+    fn update(decoder: &mut Decoder, input: Input) -> Result<Option<Change>, Error> {
         decoder.update(input.a(), input.b())
     }
 
@@ -116,7 +116,7 @@ mod tests {
             assert_eq!(update(&mut decoder, A0B1), Ok(None));
             assert_eq!(update(&mut decoder, A0B0), Ok(None));
             assert_eq!(update(&mut decoder, A1B0), Ok(None));
-            assert_eq!(update(&mut decoder, A1B1), Ok(Some(AB)));
+            assert_eq!(update(&mut decoder, A1B1), Ok(Some(Positive)));
         }
 
         #[test]
@@ -127,7 +127,7 @@ mod tests {
             assert_eq!(update(&mut decoder, A1B0), Ok(None));
             assert_eq!(update(&mut decoder, A0B0), Ok(None));
             assert_eq!(update(&mut decoder, A0B1), Ok(None));
-            assert_eq!(update(&mut decoder, A1B1), Ok(Some(BA)));
+            assert_eq!(update(&mut decoder, A1B1), Ok(Some(Negative)));
         }
     }
 
@@ -147,7 +147,7 @@ mod tests {
                 assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
                 assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
                 assert_eq!(update(&mut decoder, A1B0), Ok(None));
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Positive)));
             }
 
             #[test]
@@ -160,7 +160,7 @@ mod tests {
                 assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
                 assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
                 assert_eq!(update(&mut decoder, A0B1), Ok(None));
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Negative)));
             }
         }
 
@@ -178,7 +178,7 @@ mod tests {
                 assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
                 assert_eq!(update(&mut decoder, A1B0), Ok(None));
                 assert_eq!(update(&mut decoder, A1B0), Ok(None)); // Redundant input
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(AB)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Positive)));
             }
 
             #[test]
@@ -192,7 +192,7 @@ mod tests {
                 assert_eq!(update(&mut decoder, A0B0), Ok(None)); // Redundant input
                 assert_eq!(update(&mut decoder, A0B1), Ok(None));
                 assert_eq!(update(&mut decoder, A0B1), Ok(None)); // Redundant input
-                assert_eq!(update(&mut decoder, A1B1), Ok(Some(BA)));
+                assert_eq!(update(&mut decoder, A1B1), Ok(Some(Negative)));
             }
         }
     }
