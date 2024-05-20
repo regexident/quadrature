@@ -2,5 +2,14 @@
 members = ["quadrature-decoder", "quadrature-encoder"]
 resolver = "2"
 
+[workspace.package]
+repository = "https://github.com/regexident/quadrature"
+homepage = "https://github.com/regexident/quadrature"
+documentation = "https://docs.rs/quadrature"
+license = "MPL-2.0"
+edition = "2021"
+version = "0.1.0"
+rust-version = "1.74.0"
+
 [workspace.dependencies]
 num-traits = { version = "0.2.19", default-features = false }
