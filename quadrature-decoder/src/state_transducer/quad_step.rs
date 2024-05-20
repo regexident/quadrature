@@ -72,11 +72,11 @@ mod tests {
             Input::{self, *},
             Output, State, StateTransducer,
         },
-        Error, QuadStep, QuadratureDecoder,
+        Error, QuadStep, IncrementalDecoder,
         QuadratureMovement::{self, *},
     };
 
-    type Decoder = QuadratureDecoder<QuadStep>;
+    type Decoder = IncrementalDecoder<QuadStep>;
 
     fn update(decoder: &mut Decoder, input: Input) -> Result<Option<QuadratureMovement>, Error> {
         decoder.update(input.a(), input.b())

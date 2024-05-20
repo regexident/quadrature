@@ -1,55 +1,14 @@
-//! A robust quadrature decoder with support for multiple step-modes
+//! Quadrature-based decoder.
 
 use core::marker::PhantomData;
+
+use num_traits::{One, SaturatingAdd, Zero};
 
 use crate::{
     state_transducer::{Input, Output},
     validator::InputValidator,
-    Error, FullStep, HalfStep, QuadStep, StateTransducer, StepMode,
+    Error, FullStep, HalfStep, QuadStep, QuadratureMovement, StateTransducer, StepMode,
 };
-
-/// The movement detected by a quadrature decoder.
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub enum QuadratureMovement {
-    /// Channel A leads channel B, commonly describing a forwards movement.
-    AB = 0,
-    /// Channel B leads channel A, commonly describing a backwards movement.
-    BA = 1,
-}
-
-impl QuadratureMovement {
-    /// Flips the direction of `self`.
-    pub fn flip(&mut self) {
-        *self = self.flipped()
-    }
-
-    /// Returns the direction of `self`, flipped.
-    pub fn flipped(self) -> Self {
-        match self {
-            Self::AB => Self::BA,
-            Self::BA => Self::AB,
-        }
-    }
-}
-
-impl From<QuadratureMovement> for Output {
-    fn from(movement: QuadratureMovement) -> Self {
-        match movement {
-            QuadratureMovement::AB => Self::F,
-            QuadratureMovement::BA => Self::R,
-        }
-    }
-}
-
-impl From<Option<QuadratureMovement>> for Output {
-    fn from(movement: Option<QuadratureMovement>) -> Self {
-        match movement {
-            Some(movement) => movement.into(),
-            None => Self::N,
-        }
-    }
-}
 
 /// A robust quadrature decoder with support for multiple step-modes,
 /// based on which channel (A vs. B) is leading the other.
@@ -72,13 +31,17 @@ impl From<Option<QuadratureMovement>> for Output {
 ///              ─ ┘   └───┘   └───┘   └───┘   └ ─ ┘     low  
 /// ```
 #[derive(Debug)]
-pub struct QuadratureDecoder<Mode> {
+pub struct IncrementalDecoder<Mode, T = i32> {
     transducer: StateTransducer<'static, 8, 4>,
     validator: InputValidator,
+    position: T,
     _phantom: PhantomData<Mode>,
 }
 
-impl Default for QuadratureDecoder<FullStep> {
+impl<T> Default for IncrementalDecoder<FullStep, T>
+where
+    T: Zero,
+{
     fn default() -> Self {
         Self::new(StateTransducer::new(
             &crate::state_transducer::full_step::TRANSITIONS,
@@ -86,7 +49,10 @@ impl Default for QuadratureDecoder<FullStep> {
     }
 }
 
-impl Default for QuadratureDecoder<HalfStep> {
+impl<T> Default for IncrementalDecoder<HalfStep, T>
+where
+    T: Zero,
+{
     fn default() -> Self {
         Self::new(StateTransducer::new(
             &crate::state_transducer::half_step::TRANSITIONS,
@@ -94,7 +60,10 @@ impl Default for QuadratureDecoder<HalfStep> {
     }
 }
 
-impl Default for QuadratureDecoder<QuadStep> {
+impl<T> Default for IncrementalDecoder<QuadStep, T>
+where
+    T: Zero,
+{
     fn default() -> Self {
         Self::new(StateTransducer::new(
             &crate::state_transducer::quad_step::TRANSITIONS,
@@ -102,19 +71,27 @@ impl Default for QuadratureDecoder<QuadStep> {
     }
 }
 
-impl<Mode> QuadratureDecoder<Mode>
+impl<Mode, T> IncrementalDecoder<Mode, T>
 where
     Mode: StepMode,
+    T: Zero,
 {
     pub(crate) fn new(transducer: StateTransducer<'static, 8, 4>) -> Self {
         Self {
             transducer,
             validator: Default::default(),
+            position: Zero::zero(),
             _phantom: PhantomData,
         }
     }
+}
 
-    /// Updates the decoder's state based on the given `a` and `b` pulse train readings,
+impl<Mode, T> IncrementalDecoder<Mode, T>
+where
+    Mode: StepMode,
+    T: Copy + Zero + One + SaturatingAdd + From<i8>,
+{
+    /// Updates the decoder's state based on the given `a` and `b` pulse train (aka channel) readings,
     /// returning the direction if a movement was detected, `None` if no movement was detected,
     /// or `Err(_)` if an invalid input (i.e. a positional "jump") was detected.
     ///
@@ -125,14 +102,15 @@ where
     /// ```rust
     /// # let a: bool = true;
     /// # let b: bool = true;
-    /// use quadrature_decoder::{FullStep, QuadratureDecoder};
+    /// use quadrature_decoder::{FullStep, IncrementalDecoder};
     ///
-    /// let mut decoder = QuadratureDecoder::<FullStep>::default();
+    /// let mut decoder = IncrementalDecoder::<FullStep>::default();
     /// match decoder.update(a, b) {
-    ///     Ok(Some(movement)) => println!("QuadratureMovement detected: {:?}.", movement),
+    ///     Ok(Some(movement)) => println!("Movement detected: {:?}.", movement),
     ///     Ok(None) => println!("No movement detected."),
     ///     Err(error) => println!("Error detected: {:?}.", error),
     /// }
+    /// println!("position: {:?}", decoder.position());
     /// ```
     ///
     /// Or fall back to `None` in case of `Err(_)` by use of `.unwrap_or_default()`:
@@ -140,13 +118,14 @@ where
     /// ```rust
     /// # let a: bool = true;
     /// # let b: bool = true;
-    /// use quadrature_decoder::{FullStep, QuadratureDecoder};
+    /// use quadrature_decoder::{FullStep, IncrementalDecoder};
     ///
-    /// let mut decoder = QuadratureDecoder::<FullStep>::default();
+    /// let mut decoder = IncrementalDecoder::<FullStep>::default();
     /// match decoder.update(a, b).unwrap_or_default() {
-    ///     Some(movement) => println!("QuadratureMovement detected: {:?}.", movement),
+    ///     Some(movement) => println!("Movement detected: {:?}.", movement),
     ///     None => println!("No movement detected."),
     /// }
+    /// println!("position: {:?}", decoder.position());
     /// ```
     pub fn update(&mut self, a: bool, b: bool) -> Result<Option<QuadratureMovement>, Error> {
         let input = Input::new(a, b);
@@ -160,8 +139,18 @@ where
                 Err(error)
             }
             (Ok(_), Output::N) => Ok(None),
-            (Ok(_), Output::F) => Ok(Some(QuadratureMovement::AB)),
-            (Ok(_), Output::R) => Ok(Some(QuadratureMovement::BA)),
+            (Ok(_), Output::F) => {
+                let movement = QuadratureMovement::AB;
+                let delta: T = (movement as i8).into();
+                self.position = self.position.saturating_add(&delta);
+                Ok(Some(movement))
+            }
+            (Ok(_), Output::R) => {
+                let movement = QuadratureMovement::BA;
+                let delta: T = (movement as i8).into();
+                self.position = self.position.saturating_add(&delta);
+                Ok(Some(movement))
+            }
             (_, Output::E) => {
                 // Transducers are expected to not return error outputs since their states tend to
                 // be insufficient for reliable detection without false positives/negatives.
@@ -170,21 +159,23 @@ where
         }
     }
 
-    /// Resets the decoder to its initial state.
+    /// Resets the decoder to its initial state and its position counter back to `0`.
     pub fn reset(&mut self) {
         self.transducer.reset();
         self.validator.reset();
+        self.position = Zero::zero();
     }
 
-    /// The decoder's number of pulses per (quadrature) cycle (PPC).
+    /// Returns the decoder's position counter relative to its initial position in number of cycles.
     ///
-    /// As an example, consider the effective pulses per revolution (PPR)
-    /// of a rotary encoder with 100 cycles per revolution (CPR):
-    ///
-    /// - A step mode with 1 pulse per cycle (e.g. `QuadratureDecoder<FullStep>`) results in effectively 100 pulses per revolution (100 PPR).
-    /// - A step mode with 2 pulses per cycle (e.g. `QuadratureDecoder<HalfStep>`) results in effectively 200 pulses per revolution (200 PPR).
-    /// - A step mode with 4 pulses per cycle (e.g. `QuadratureDecoder<QuadStep>`) results in effectively 400 pulses per revolution (400 PPR).
-    pub fn pulses_per_cycle() -> usize {
-        Mode::PULSES_PER_CYCLE
+    /// A movement of direction `QuadratureMovement::AB` increments the position counter,
+    /// while a movement of direction `QuadratureMovement::BA` decrements it.
+    pub fn position(&self) -> T {
+        self.position
+    }
+
+    /// Sets the decoder's position.
+    pub fn set_position(&mut self, position: T) {
+        self.position = position;
     }
 }
