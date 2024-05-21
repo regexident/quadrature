@@ -117,7 +117,7 @@ mod tests {
         let b: Vec<bool> = vec![true, false, false, true, true, false, false, true];
         let z: Vec<bool> = vec![false, false, false, false, true, false, false, false];
 
-        let pulse_trains = a.into_iter().zip(b.into_iter()).zip(z.into_iter());
+        let pulse_trains = a.into_iter().zip(b).zip(z);
 
         let changes: Vec<Option<Change>> = vec![
             None,
@@ -131,7 +131,7 @@ mod tests {
         ];
         let counters: Vec<i32> = vec![0, 1, 1, 2, 0, 1, 1, 2];
 
-        let expected = changes.into_iter().zip(counters.into_iter());
+        let expected = changes.into_iter().zip(counters);
 
         let mut decoder: IndexedIncrementalDecoder<HalfStep> = Default::default();
 
