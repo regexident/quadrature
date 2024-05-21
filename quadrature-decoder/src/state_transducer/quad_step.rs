@@ -72,8 +72,8 @@ mod tests {
             Input::{self, *},
             Output, State, StateTransducer,
         },
-        Error, IncrementalDecoder, QuadStep,
         Change::{self, *},
+        Error, IncrementalDecoder, QuadStep,
     };
 
     type Decoder = IncrementalDecoder<QuadStep>;
