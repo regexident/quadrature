@@ -24,7 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- Bumped MSRV from `1.74.0` to `1.74.1`
+- n/a
 
 ### Deprecated
 
@@ -49,6 +49,12 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.1.1] - 2024-06-05
+
+### Changed
+
+- Bumped MSRV from `1.74.0` to `1.74.1`
 
 ## [0.1.0] - 2024-05-21
 
