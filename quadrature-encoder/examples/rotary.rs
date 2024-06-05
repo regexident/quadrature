@@ -1,4 +1,4 @@
-use embedded_hal_mock::eh1::pin::{
+use embedded_hal_mock::eh1::digital::{
     Mock as PinMock, State as PinState, Transaction as PinTransaction,
 };
 
