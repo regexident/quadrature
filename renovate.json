@@ -1,17 +1,16 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended",
-    ":disableDependencyDashboard"
+    "config:recommended"
   ],
   "packageRules": [
     {
-      "matchPackagePatterns": [
-        "*"
-      ],
       "allowedVersions": "!/^=/",
       "groupName": "dependencies",
-      "groupSlug": "dependencies"
+      "groupSlug": "dependencies",
+      "matchPackageNames": [
+        "*"
+      ]
     }
   ]
 }
