@@ -2,12 +2,14 @@
 
 use core::marker::PhantomData;
 
-use embedded_hal::digital::InputPin;
-
 use num_traits::{One, SaturatingAdd, Zero};
 use quadrature_decoder::{Change, FullStep, IncrementalDecoder, StepMode};
 
+#[cfg(feature="async")]
+use embassy_futures::select::{select,Either};
+
 use crate::{
+    traits::InputPin,
     mode::{Movement, OperationMode},
     Error, InputPinError, Linear, Rotary,
 };
@@ -109,6 +111,17 @@ where
                 movement
             }
         }))
+    }
+
+    /// Waits asyncronously for either two pins to change state, then runs poll()
+    #[cfg(feature="async")]
+    pub async fn poll_async(&mut self) -> Result<Option<Mode::Movement>, Error> {
+        match select(self.pin_clk.wait_for_any_edge(),self.pin_dt.wait_for_any_edge()).await
+        {
+            Either::First(_) => {},
+            Either::Second(_) => {},
+        };
+        self.poll()
     }
 
     /// Resets the encoder to its initial state.
