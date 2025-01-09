@@ -7,11 +7,14 @@ use quadrature_decoder::{Change, FullStep, IncrementalDecoder, StepMode};
 
 #[cfg(feature="async")]
 use embassy_futures::select::{select,Either};
+#[cfg(feature="async")]
+use futures::FutureExt;
 
+#[allow(unused_imports)]
 use crate::{
     traits::InputPin,
     mode::{Movement, OperationMode},
-    Error, InputPinError, Linear, Rotary,
+    Error,Linear, Rotary, InputPinError
 };
 
 /// Rotary encoder.
@@ -29,6 +32,8 @@ pub struct IncrementalEncoder<Mode, Clk, Dt, Steps = FullStep, T = i32> {
     pin_dt: Dt,
     is_reversed: bool,
     _mode: PhantomData<Mode>,
+    pin_clk_state: bool,
+    pin_dt_state: bool,
 }
 
 impl<Mode, Clk, Dt, Steps, T> IncrementalEncoder<Mode, Clk, Dt, Steps, T>
@@ -40,16 +45,24 @@ where
     T: Zero,
 {
     /// Creates an incremental encoder driver for the given pins.
-    pub fn new(pin_clk: Clk, pin_dt: Dt) -> Self
+    /// NOTE: eh1 requires mutable pin references, but eh0 does not, which upsets clippy sometimes.
+    #[allow(unused_mut)]
+    pub fn new(mut pin_clk: Clk, mut pin_dt: Dt) -> Self
     where
         IncrementalDecoder<Steps, T>: Default,
     {
+        // read the initial pin states to determine starting values
+        let pin_clk_state = pin_clk.is_high().unwrap_or(false);
+        let pin_dt_state = pin_dt.is_high().unwrap_or(false);
+
         Self {
             decoder: Default::default(),
             pin_clk,
             pin_dt,
             is_reversed: false,
             _mode: PhantomData,
+            pin_clk_state,
+            pin_dt_state,
         }
     }
 }
@@ -92,16 +105,13 @@ where
     /// you would either call `encoder.poll()` directly, or via `encoder.poll().unwrap_or_default()`
     /// to fall back to `None` in case of `Err(_)`.
     pub fn poll(&mut self) -> Result<Option<Mode::Movement>, Error> {
-        let a = self
-            .pin_clk
-            .is_high()
-            .map_err(|_| Error::InputPin(InputPinError::PinClk))?;
-        let b = self
-            .pin_dt
-            .is_high()
-            .map_err(|_| Error::InputPin(InputPinError::PinDt))?;
+        #[cfg(not(feature="async"))]
+        {
+        self.pin_clk_state = self.pin_clk.is_high().map_err(|_| Error::InputPin(InputPinError::PinClk))?;
+        self.pin_dt_state = self.pin_dt.is_high().map_err(|_| Error::InputPin(InputPinError::PinDt))?;
+        }
 
-        let change: Option<Change> = self.decoder.update(a, b).map_err(Error::Quadrature)?;
+        let change: Option<Change> = self.decoder.update(self.pin_clk_state, self.pin_dt_state).map_err(Error::Quadrature)?;
         let movement: Option<Mode::Movement> = change.map(From::from);
 
         Ok(movement.map(|movement| {
@@ -116,10 +126,24 @@ where
     /// Waits asyncronously for either two pins to change state, then runs poll()
     #[cfg(feature="async")]
     pub async fn poll_async(&mut self) -> Result<Option<Mode::Movement>, Error> {
-        match select(self.pin_clk.wait_for_any_edge(),self.pin_dt.wait_for_any_edge()).await
+        let clk_fut = match self.pin_clk_state {
+            true => self.pin_clk.wait_for_falling_edge().left_future(),
+            false => self.pin_clk.wait_for_rising_edge().right_future(),
+        };
+
+        let dt_fut = match self.pin_dt_state {
+            true => self.pin_dt.wait_for_falling_edge().left_future(),
+            false => self.pin_dt.wait_for_rising_edge().right_future(),
+        };
+
+        match select(clk_fut, dt_fut).await
         {
-            Either::First(_) => {},
-            Either::Second(_) => {},
+            Either::First(_) => {
+                self.pin_clk_state = !self.pin_clk_state;
+            },
+            Either::Second(_) => {
+                self.pin_dt_state = !self.pin_dt_state;
+            },
         };
         self.poll()
     }
