@@ -12,12 +12,12 @@ use quadrature_encoder::{RotaryEncoder, RotaryMovement};
 
 fn main() {
     #[cfg(not(feature = "async"))]
-    let pin_clk = PinMock::new(&[PinTransaction::get(PinState::High)]);
+    let pin_clk = PinMock::new(&[PinTransaction::get(PinState::High),PinTransaction::get(PinState::High)]);
     #[cfg(not(feature = "async"))]
-    let pin_dt = PinMock::new(&[PinTransaction::get(PinState::High)]);
+    let pin_dt = PinMock::new(&[PinTransaction::get(PinState::High),PinTransaction::get(PinState::High)]);
 
     #[cfg(feature = "async")]
-    let pin_clk = PinMock::new(&[PinTransaction::wait_for_edge(Edge::Any),PinTransaction::get(PinState::High)]);
+    let pin_clk = PinMock::new(&[PinTransaction::get(PinState::High),PinTransaction::wait_for_edge(Edge::Falling)]);
     #[cfg(feature = "async")]
     let pin_dt = PinMock::new(&[PinTransaction::get(PinState::High)]);
 
