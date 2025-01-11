@@ -3,6 +3,7 @@
 #![warn(missing_docs)]
 #![cfg_attr(not(test), no_std)]
 
+mod traits;
 mod encoder;
 mod mode;
 pub use quadrature_decoder::{Error as QuadratureError, FullStep, HalfStep, QuadStep};
