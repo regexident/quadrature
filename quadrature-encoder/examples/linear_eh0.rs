@@ -1,7 +1,7 @@
-use embedded_hal_mock::eh1::digital::{
+use embedded_hal_compat::{markers::*, Forward, ForwardCompat};
+use embedded_hal_mock::eh0::digital::{
     Mock as PinMock, State as PinState, Transaction as PinTransaction,
 };
-
 use quadrature_encoder::{LinearEncoder, LinearMovement};
 
 fn main() {
@@ -14,7 +14,12 @@ fn main() {
         PinTransaction::get(PinState::High),
     ]);
 
-    let mut encoder = LinearEncoder::<_, _>::new(pin_clk, pin_dt);
+    let pin_clk_eh1: Forward<embedded_hal_mock::common::Generic<PinTransaction>, ForwardInputPin> =
+        pin_clk.forward();
+    let pin_dt_eh1: Forward<embedded_hal_mock::common::Generic<PinTransaction>, ForwardInputPin> =
+        pin_dt.forward();
+
+    let mut encoder = LinearEncoder::<_, _>::new(pin_clk_eh1, pin_dt_eh1);
 
     match encoder.poll() {
         Ok(Some(movement)) => {
@@ -31,6 +36,6 @@ fn main() {
     println!("Encoder is at position: {:?}.", encoder.position());
 
     let (mut pin_clk, mut pin_dt) = encoder.release();
-    pin_clk.done();
-    pin_dt.done();
+    pin_clk.inner_mut().done();
+    pin_dt.inner_mut().done();
 }

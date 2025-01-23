@@ -5,51 +5,48 @@ use core::marker::PhantomData;
 use num_traits::{One, SaturatingAdd, Zero};
 use quadrature_decoder::{Change, FullStep, IncrementalDecoder, StepMode};
 
-#[cfg(feature="async")]
-use embassy_futures::select::{select,Either};
-#[cfg(feature="async")]
-use futures::FutureExt;
-
 #[allow(unused_imports)]
 use crate::{
-    traits::InputPin,
-    mode::{Movement, OperationMode},
-    Error,Linear, Rotary, InputPinError
+    mode::{Async, Blocking, Movement, OperationMode, PollMode},
+    traits::*,
+    Error, InputPinError, Linear, Rotary,
 };
 
 /// Rotary encoder.
-pub type RotaryEncoder<Clk, Dt, Steps = FullStep, T = i32> =
-    IncrementalEncoder<Rotary, Clk, Dt, Steps, T>;
+pub type RotaryEncoder<Clk, Dt, Steps = FullStep, T = i32, PM = Blocking> =
+    IncrementalEncoder<Rotary, Clk, Dt, Steps, T, PM>;
 /// Linear encoder.
-pub type LinearEncoder<Clk, Dt, Steps = FullStep, T = i32> =
-    IncrementalEncoder<Linear, Clk, Dt, Steps, T>;
+pub type LinearEncoder<Clk, Dt, Steps = FullStep, T = i32, PM = Blocking> =
+    IncrementalEncoder<Linear, Clk, Dt, Steps, T, PM>;
 
 /// A robust incremental encoder with support for multiple step-modes.
 #[derive(Debug)]
-pub struct IncrementalEncoder<Mode, Clk, Dt, Steps = FullStep, T = i32> {
+pub struct IncrementalEncoder<Mode, Clk, Dt, Steps = FullStep, T = i32, PM = Blocking> {
     decoder: IncrementalDecoder<Steps, T>,
     pin_clk: Clk,
     pin_dt: Dt,
-    is_reversed: bool,
-    _mode: PhantomData<Mode>,
     pin_clk_state: bool,
     pin_dt_state: bool,
+    is_reversed: bool,
+    _mode: PhantomData<Mode>,
+    _pollmode: PhantomData<PM>,
 }
 
-impl<Mode, Clk, Dt, Steps, T> IncrementalEncoder<Mode, Clk, Dt, Steps, T>
+impl<Mode, Clk, Dt, Steps, T, PM> IncrementalEncoder<Mode, Clk, Dt, Steps, T, PM>
 where
     Mode: OperationMode,
     Clk: InputPin,
     Dt: InputPin,
     Steps: StepMode,
     T: Zero,
+    PM: PollMode,
 {
     /// Creates an incremental encoder driver for the given pins.
-    /// NOTE: eh1 requires mutable pin references, but eh0 does not, which upsets clippy sometimes.
-    #[allow(unused_mut)]
     pub fn new(mut pin_clk: Clk, mut pin_dt: Dt) -> Self
     where
         IncrementalDecoder<Steps, T>: Default,
+        Clk: InputPin,
+        Dt: InputPin,
     {
         // read the initial pin states to determine starting values
         let pin_clk_state = pin_clk.is_high().unwrap_or(false);
@@ -59,21 +56,23 @@ where
             decoder: Default::default(),
             pin_clk,
             pin_dt,
-            is_reversed: false,
-            _mode: PhantomData,
             pin_clk_state,
             pin_dt_state,
+            is_reversed: false,
+            _mode: PhantomData,
+            _pollmode: PhantomData,
         }
     }
 }
 
-impl<Mode, Clk, Dt, Steps, T> IncrementalEncoder<Mode, Clk, Dt, Steps, T>
+impl<Mode, Clk, Dt, Steps, T, PM> IncrementalEncoder<Mode, Clk, Dt, Steps, T, PM>
 where
     Mode: OperationMode,
     Clk: InputPin,
     Dt: InputPin,
     Steps: StepMode,
     T: Copy + Zero + One + SaturatingAdd + From<i8>,
+    PM: PollMode,
 {
     /// Sets the encoder's reversed mode, making it report flipped movements and positions.
     pub fn reversed(mut self) -> Self {
@@ -96,22 +95,13 @@ where
         (self.pin_clk, self.pin_dt)
     }
 
-    /// Updates the encoder's state based on the given **clock** and **data** pins,
-    /// returning the direction if a movement was detected, `None` if no movement was detected,
-    /// or `Err(_)` if an invalid input (i.e. a positional "jump") was detected.
-    ///
-    /// Depending on whether it matters why the encoder did not detect a movement
-    /// (e.g. due to actual lack of movement or an erroneous read)
-    /// you would either call `encoder.poll()` directly, or via `encoder.poll().unwrap_or_default()`
-    /// to fall back to `None` in case of `Err(_)`.
-    pub fn poll(&mut self) -> Result<Option<Mode::Movement>, Error> {
-        #[cfg(not(feature="async"))]
-        {
-        self.pin_clk_state = self.pin_clk.is_high().map_err(|_| Error::InputPin(InputPinError::PinClk))?;
-        self.pin_dt_state = self.pin_dt.is_high().map_err(|_| Error::InputPin(InputPinError::PinDt))?;
-        }
-
-        let change: Option<Change> = self.decoder.update(self.pin_clk_state, self.pin_dt_state).map_err(Error::Quadrature)?;
+    /// Updates the internal decoder state, from the latest IO readings.
+    /// This is called within poll() / poll_async()
+    fn update(&mut self) -> Result<Option<Mode::Movement>, Error> {
+        let change: Option<Change> = self
+            .decoder
+            .update(self.pin_clk_state, self.pin_dt_state)
+            .map_err(Error::Quadrature)?;
         let movement: Option<Mode::Movement> = change.map(From::from);
 
         Ok(movement.map(|movement| {
@@ -121,31 +111,6 @@ where
                 movement
             }
         }))
-    }
-
-    /// Waits asyncronously for either two pins to change state, then runs poll()
-    #[cfg(feature="async")]
-    pub async fn poll_async(&mut self) -> Result<Option<Mode::Movement>, Error> {
-        let clk_fut = match self.pin_clk_state {
-            true => self.pin_clk.wait_for_falling_edge().left_future(),
-            false => self.pin_clk.wait_for_rising_edge().right_future(),
-        };
-
-        let dt_fut = match self.pin_dt_state {
-            true => self.pin_dt.wait_for_falling_edge().left_future(),
-            false => self.pin_dt.wait_for_rising_edge().right_future(),
-        };
-
-        match select(clk_fut, dt_fut).await
-        {
-            Either::First(_) => {
-                self.pin_clk_state = !self.pin_clk_state;
-            },
-            Either::Second(_) => {
-                self.pin_dt_state = !self.pin_dt_state;
-            },
-        };
-        self.poll()
     }
 
     /// Resets the encoder to its initial state.
@@ -161,5 +126,121 @@ where
     /// Sets the encoder's position.
     pub fn set_position(&mut self, position: T) {
         self.decoder.set_counter(position);
+    }
+}
+
+impl<Mode, Clk, Dt, Steps, T> IncrementalEncoder<Mode, Clk, Dt, Steps, T, Blocking>
+where
+    Mode: OperationMode,
+    Clk: InputPin,
+    Dt: InputPin,
+    Steps: StepMode,
+    T: Copy + Zero + One + SaturatingAdd + From<i8>,
+{
+    /// Updates the encoder's state based on the given **clock** and **data** pins,
+    /// returning the direction if a movement was detected, `None` if no movement was detected,
+    /// or `Err(_)` if an invalid input (i.e. a positional "jump") was detected.
+    ///
+    /// Depending on whether it matters why the encoder did not detect a movement
+    /// (e.g. due to actual lack of movement or an erroneous read)
+    /// you would either call `encoder.poll()` directly, or via `encoder.poll().unwrap_or_default()`
+    /// to fall back to `None` in case of `Err(_)`.
+    pub fn poll(&mut self) -> Result<Option<Mode::Movement>, Error> {
+        self.pin_clk_state = self
+            .pin_clk
+            .is_high()
+            .map_err(|_| Error::InputPin(InputPinError::PinClk))?;
+        self.pin_dt_state = self
+            .pin_dt
+            .is_high()
+            .map_err(|_| Error::InputPin(InputPinError::PinDt))?;
+        self.update()
+    }
+}
+
+/// If async is enabled, and the pins provided satisfy the AsyncInputPin trait, the into_async() method is exposed.
+#[cfg(feature = "async")]
+impl<Mode, Clk, Dt, Steps, T> IncrementalEncoder<Mode, Clk, Dt, Steps, T, Blocking>
+where
+    Mode: OperationMode,
+    Clk: InputPin + Wait,
+    Dt: InputPin + Wait,
+    Steps: StepMode,
+    T: Copy + Zero + One + SaturatingAdd + From<i8>,
+{
+    /// Reconfigure the driver so that poll() is an async fn
+    pub fn into_async(self) -> IncrementalEncoder<Mode, Clk, Dt, Steps, T, Async>
+    where
+        IncrementalDecoder<Steps, T>: Default,
+    {
+        IncrementalEncoder::<Mode, Clk, Dt, Steps, T, Async> {
+            decoder: self.decoder,
+            pin_clk: self.pin_clk,
+            pin_dt: self.pin_dt,
+            pin_clk_state: self.pin_clk_state,
+            pin_dt_state: self.pin_dt_state,
+            is_reversed: self.is_reversed,
+            _mode: PhantomData,
+            _pollmode: PhantomData,
+        }
+    }
+}
+
+#[cfg(feature = "async")]
+impl<Mode, Clk, Dt, Steps, T> IncrementalEncoder<Mode, Clk, Dt, Steps, T, Async>
+where
+    Mode: OperationMode,
+    Clk: InputPin + Wait,
+    Dt: InputPin + Wait,
+    Steps: StepMode,
+    T: Copy + Zero + One + SaturatingAdd + From<i8>,
+{
+    /// Updates the encoder's state based on the given **clock** and **data** pins,
+    /// returning the direction if a movement was detected, `None` if no movement was detected,
+    /// or `Err(_)` if an invalid input (i.e. a positional "jump") was detected.
+    ///
+    /// Depending on whether it matters why the encoder did not detect a movement
+    /// (e.g. due to actual lack of movement or an erroneous read)
+    /// you would either call `encoder.poll()` directly, or via `encoder.poll().unwrap_or_default()`
+    /// to fall back to `None` in case of `Err(_)`.
+    ///
+    /// Waits asyncronously for any of the pins to change state, before returning.
+    pub async fn poll(&mut self) -> Result<Option<Mode::Movement>, Error> {
+        let clk_fut = match self.pin_clk_state {
+            true => self.pin_clk.wait_for_falling_edge().left_future(),
+            false => self.pin_clk.wait_for_rising_edge().right_future(),
+        };
+
+        let dt_fut = match self.pin_dt_state {
+            true => self.pin_dt.wait_for_falling_edge().left_future(),
+            false => self.pin_dt.wait_for_rising_edge().right_future(),
+        };
+
+        match select(clk_fut, dt_fut).await {
+            Either::First(_) => {
+                self.pin_clk_state = !self.pin_clk_state;
+            }
+            Either::Second(_) => {
+                self.pin_dt_state = !self.pin_dt_state;
+            }
+        };
+        self.update()
+    }
+
+    /// Reconfigure the driver so that poll() is a blocking function
+    pub fn into_blocking(self) -> IncrementalEncoder<Mode, Clk, Dt, Steps, T, Blocking>
+    where
+        IncrementalDecoder<Steps, T>: Default,
+    {
+        IncrementalEncoder::<Mode, Clk, Dt, Steps, T, Blocking> {
+            decoder: self.decoder,
+            pin_clk: self.pin_clk,
+            pin_dt: self.pin_dt,
+            pin_clk_state: self.pin_clk_state,
+            pin_dt_state: self.pin_dt_state,
+            is_reversed: self.is_reversed,
+            _mode: PhantomData,
+            _pollmode: PhantomData,
+        }
     }
 }

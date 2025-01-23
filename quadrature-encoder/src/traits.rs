@@ -1,17 +1,14 @@
-#[cfg(feature = "eh1")]
-use eh1::digital::InputPin as EhalInputPin;
+// Polled pins must impliment ehal v1.0.0 InputPin trait,
+// either directly or via embadded-hal-compat Forward-ing.
+pub use eh1::digital::InputPin;
+use embedded_hal_compat::eh1_0 as eh1;
 
-#[cfg(feature = "eh0")]
-use eh0::digital::v2::InputPin as EhalInputPin;
-
-#[cfg(not(feature = "async"))]
-pub trait InputPin: EhalInputPin {}
-#[cfg(not(feature = "async"))]
-impl<T: EhalInputPin> InputPin for T {}
-
+// exported async traits
 #[cfg(feature = "async")]
-use embedded_hal_async::digital::Wait;
+pub use embassy_futures::select::{select, Either};
 #[cfg(feature = "async")]
-pub trait InputPin: EhalInputPin + Wait {}
+pub use embassy_futures::select::{select3, Either3};
 #[cfg(feature = "async")]
-impl<T: EhalInputPin + Wait> InputPin for T {}
+pub use embedded_hal_async::digital::Wait;
+#[cfg(feature = "async")]
+pub use futures::FutureExt;
