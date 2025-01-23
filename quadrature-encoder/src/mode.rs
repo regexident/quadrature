@@ -1,6 +1,7 @@
 mod linear;
 mod rotary;
 
+use core::marker::PhantomData;
 use quadrature_decoder::Change;
 
 pub use self::{
@@ -18,3 +19,18 @@ pub trait OperationMode {
     /// The mode's type of movement.
     type Movement: Movement;
 }
+
+/// A marker trait for initializing drivers in a specific mode.
+/// Inspired by https://github.com/esp-rs/esp-hal
+pub trait PollMode {}
+
+/// Driver initialized in blocking mode.
+#[derive(Debug)]
+pub struct Blocking;
+
+/// Driver initialized in async mode.
+#[derive(Debug)]
+pub struct Async(PhantomData<*const ()>);
+
+impl crate::PollMode for Blocking {}
+impl crate::PollMode for Async {}

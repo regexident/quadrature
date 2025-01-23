@@ -3,9 +3,9 @@
 #![warn(missing_docs)]
 #![cfg_attr(not(test), no_std)]
 
-mod traits;
 mod encoder;
 mod mode;
+mod traits;
 pub use quadrature_decoder::{Error as QuadratureError, FullStep, HalfStep, QuadStep};
 
 pub use self::{
@@ -13,7 +13,9 @@ pub use self::{
         IncrementalEncoder, IndexedIncrementalEncoder, IndexedLinearEncoder, IndexedRotaryEncoder,
         LinearEncoder, RotaryEncoder,
     },
-    mode::{Linear, LinearMovement, OperationMode, Rotary, RotaryMovement},
+    mode::{
+        Async, Blocking, Linear, LinearMovement, OperationMode, PollMode, Rotary, RotaryMovement,
+    },
 };
 
 /// An error indicating an input pin issue.
