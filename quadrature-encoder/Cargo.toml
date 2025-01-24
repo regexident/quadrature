@@ -1,7 +1,12 @@
 [package]
 name = "quadrature-encoder"
 description = "Hardware-level implementations of drivers for incremental encoders with support for full-, half- an quad-stepping."
-keywords = ["quadrature-encoder", "incremental-encoder", "rotary-encoder", "linear-encoder"]
+keywords = [
+    "quadrature-encoder",
+    "incremental-encoder",
+    "rotary-encoder",
+    "linear-encoder",
+]
 categories = ["embedded", "no-std"]
 
 repository = { workspace = true }
@@ -23,11 +28,19 @@ futures = { version = "0.3.31", default-features = false, optional = true }
 embassy-futures = { version = "0.1.1", optional = true }
 
 [dev-dependencies]
-embedded-hal-mock = { version = "0.11.0", features = ["eh0","eh1","embedded-hal-async"] }
+embedded-hal-mock = { version = "0.11.0", features = [
+    "eh0",
+    "eh1",
+    "embedded-hal-async",
+] }
 
 [features]
 default = ["async"]
-async = ["dep:embedded-hal-async", "dep:futures", "dep:embassy-futures"] # provides an async poll() implementation
+async = [
+    "dep:embedded-hal-async",
+    "dep:futures",
+    "dep:embassy-futures",
+] # provides an async poll() implementation
 
 [[example]]
 name = "rotary"
