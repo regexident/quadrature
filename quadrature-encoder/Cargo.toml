@@ -27,7 +27,7 @@ embedded-hal-mock = { version = "0.11.0", features = ["eh0","eh1","embedded-hal-
 
 [features]
 default = ["async"]
-async = ["dep:embedded-hal-async", "dep:futures", "dep:embassy-futures"] # provides an async poll() implimentation
+async = ["dep:embedded-hal-async", "dep:futures", "dep:embassy-futures"] # provides an async poll() implementation
 
 [[example]]
 name = "rotary"

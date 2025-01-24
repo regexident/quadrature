@@ -204,7 +204,7 @@ where
     /// you would either call `encoder.poll()` directly, or via `encoder.poll().unwrap_or_default()`
     /// to fall back to `None` in case of `Err(_)`.
     ///
-    /// Waits asyncronously for any of the pins to change state, before returning.
+    /// Waits asynchronously for any of the pins to change state, before returning.
     pub async fn poll(&mut self) -> Result<Option<Mode::Movement>, Error> {
         let clk_fut = match self.pin_clk_state {
             true => self.pin_clk.wait_for_falling_edge().left_future(),
