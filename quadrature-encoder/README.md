@@ -61,15 +61,15 @@ See the examples directory for a more comprehensive example.
 
 ## Convenience Aliases
 
-Since the full typename `IncrementalEncoder<Mode, ..., Step, T>` can be quite a mouth-full a couple of convenience type-aliases are provided for the most common use-cases:
+Since the full typename `IncrementalEncoder<Mode, ..., Step, T, PM>` can be quite a mouth-full a couple of convenience type-aliases are provided for the most common use-cases:
 
 ### Rotary Encoders
 
 ```rust
 use quadrature_encoder::{RotaryEncoder, IndexedRotaryEncoder};
 
-let mut encoder: RotaryEncoder::new(pin_clk, pin_dt);
-let mut indexed_encoder: IndexedRotaryEncoder::new(pin_clk, pin_dt, pin_idx);
+let mut encoder = RotaryEncoder::new(pin_clk, pin_dt);
+let mut indexed_encoder = IndexedRotaryEncoder::new(pin_clk, pin_dt, pin_idx);
 ```
 
 ### Linear Encoders
@@ -77,8 +77,33 @@ let mut indexed_encoder: IndexedRotaryEncoder::new(pin_clk, pin_dt, pin_idx);
 ```rust
 use quadrature_encoder::{LinearEncoder, IndexedLinearEncoder};
 
-let mut encoder: LinearEncoder::new(pin_clk, pin_dt);
-let mut indexed_encoder: IndexedLinearEncoder::new(pin_clk, pin_dt, pin_idx);
+let mut encoder = LinearEncoder::new(pin_clk, pin_dt);
+let mut indexed_encoder = IndexedLinearEncoder::new(pin_clk, pin_dt, pin_idx);
+```
+
+## Async Polling Mode
+
+All encoders support both, blocking as well as non-blocking (i.e. async) polling modes.
+
+To create an async encoder you just have provide the `Async` type parameter:
+
+```rust
+let mut async_encoder: RotaryEncoder<_, _, Async> = RotaryEncoder::new(pin_clk, pin_dt);
+let mut async_indexed_encoder: IndexedRotaryEncoder<_, _, Async> = IndexedRotaryEncoder::new(pin_clk, pin_dt, pin_idx);
+```
+
+Or you can use the `.into_async()` method to convert an existing blocking encoder into a non-blocking one:
+
+```rust
+let mut async_encoder = blocking_encoder.into_async();
+let mut async_indexed_encoder = blocking_indexed_encoder.into_async();
+```
+
+Use the `.into_blocking()` method to convert a non-blocking encoder back into a non-blocking one:
+
+```rust
+let mut blocking_encoder = async_encoder.into_blocking();
+let mut blocking_indexed_encoder = async_indexed_encoder.into_blocking();
 ```
 
 ## Decoding Strategies
