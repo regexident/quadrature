@@ -36,6 +36,7 @@ Please make sure to add your changes to the appropriate categories:
 
 - Changed generic parameters of `IncrementalEncoder<…>` to `<Mode, Clk, Dt, Steps, T, PM>`, adding trailing `PM` parameter.
 - Changed generic parameters of `IndexedIncrementalEncoder<…>` to `<Mode, Clk, Dt, Idx, Steps, T, PM>`, adding trailing `PM` parameter.
+- Bumped MSRV from `1.74.1` to `1.75.0`.
 
 ### Deprecated
 

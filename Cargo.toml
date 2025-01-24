@@ -9,7 +9,7 @@ documentation = "https://docs.rs/quadrature"
 license = "MPL-2.0"
 edition = "2021"
 version = "0.1.1"
-rust-version = "1.74.1"
+rust-version = "1.75"
 
 [workspace.dependencies]
 num-traits = { version = "0.2.19", default-features = false }
