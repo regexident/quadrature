@@ -29,7 +29,7 @@ pub struct IncrementalEncoder<Mode, Clk, Dt, Steps = FullStep, T = i32, PM = Blo
     pin_dt_state: bool,
     is_reversed: bool,
     _mode: PhantomData<Mode>,
-    _pollmode: PhantomData<PM>,
+    _poll_mode: PhantomData<PM>,
 }
 
 impl<Mode, Clk, Dt, Steps, T, PM> IncrementalEncoder<Mode, Clk, Dt, Steps, T, PM>
@@ -60,7 +60,7 @@ where
             pin_dt_state,
             is_reversed: false,
             _mode: PhantomData,
-            _pollmode: PhantomData,
+            _poll_mode: PhantomData,
         }
     }
 }
@@ -181,7 +181,7 @@ where
             pin_dt_state: self.pin_dt_state,
             is_reversed: self.is_reversed,
             _mode: PhantomData,
-            _pollmode: PhantomData,
+            _poll_mode: PhantomData,
         }
     }
 }
@@ -240,7 +240,7 @@ where
             pin_dt_state: self.pin_dt_state,
             is_reversed: self.is_reversed,
             _mode: PhantomData,
-            _pollmode: PhantomData,
+            _poll_mode: PhantomData,
         }
     }
 }
