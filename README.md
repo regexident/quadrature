@@ -16,4 +16,4 @@ See the corresponding [`README.md`](/quadrature-decoder/) for more information.
 
 Implementations of hardware-level drivers for [incremental encoders](https://en.wikipedia.org/wiki/Incremental_encoder) with support for full-, half- an quad-stepping.
 
-See the corresponding [`README.md`](/quadrature-decoder/) for more information.
+See the corresponding [`README.md`](/quadrature-encoder/) for more information.
