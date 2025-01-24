@@ -20,23 +20,11 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- Added support for async-await (via `async` crate feature, enabled by default):
-  - Added trailing generic parameter `PollMode` to `IncrementalEncoder<…>` and `IndexedIncrementalEncoder<…>` to support both, blocking and async polling modes:
-    - `IncrementalEncoder<…, Blocking>`, which exposes its `fn poll()` as a blocking method.
-    - `IndexedIncrementalEncoder<…, Blocking>`, which exposes its `fn poll()` as a blocking method.
-    - `IncrementalEncoder<…, Async>`, which exposes its `fn poll()` as an `async` method.
-    - `IndexedIncrementalEncoder<…, Async>`, which exposes its `fn poll()` as an `async` method.
-  - Added `fn into_async()` and `fn into_blocking()` methods for converting between blocking and non-blocking poll modes:
-    - `fn into_async()`, which converts `IncrementalEncoder<…, Blocking>` into its non-blocking equivalent: `IncrementalEncoder<…, Async>`.
-    - `fn into_async()`, which converts `IndexedIncrementalEncoder<…, Blocking>` into its non-blocking equivalent: `IndexedIncrementalEncoder<…, Async>`.
-    - `fn into_blocking()`, which converts `IncrementalEncoder<…, Async>` back into its blocking equivalent: `IncrementalEncoder<…, Blocking>`.
-    - `fn into_blocking()`, which converts `IndexedIncrementalEncoder<…, Async>` back into its blocking equivalent: `IndexedIncrementalEncoder<…, Blocking>`.
+- n/a
 
 ### Changed
 
-- Changed generic parameters of `IncrementalEncoder<…>` to `<Mode, Clk, Dt, Steps, T, PM>`, adding trailing `PM` parameter.
-- Changed generic parameters of `IndexedIncrementalEncoder<…>` to `<Mode, Clk, Dt, Idx, Steps, T, PM>`, adding trailing `PM` parameter.
-- Bumped MSRV from `1.74.1` to `1.75.0`.
+- n/a
 
 ### Deprecated
 
@@ -61,6 +49,28 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.2.0] - 2025-01-24
+
+### Added
+
+- Added support for async-await (via `async` crate feature, enabled by default):
+  - Added trailing generic parameter `PollMode` to `IncrementalEncoder<…>` and `IndexedIncrementalEncoder<…>` to support both, blocking and async polling modes:
+    - `IncrementalEncoder<…, Blocking>`, which exposes its `fn poll()` as a blocking method.
+    - `IndexedIncrementalEncoder<…, Blocking>`, which exposes its `fn poll()` as a blocking method.
+    - `IncrementalEncoder<…, Async>`, which exposes its `fn poll()` as an `async` method.
+    - `IndexedIncrementalEncoder<…, Async>`, which exposes its `fn poll()` as an `async` method.
+  - Added `fn into_async()` and `fn into_blocking()` methods for converting between blocking and non-blocking poll modes:
+    - `fn into_async()`, which converts `IncrementalEncoder<…, Blocking>` into its non-blocking equivalent: `IncrementalEncoder<…, Async>`.
+    - `fn into_async()`, which converts `IndexedIncrementalEncoder<…, Blocking>` into its non-blocking equivalent: `IndexedIncrementalEncoder<…, Async>`.
+    - `fn into_blocking()`, which converts `IncrementalEncoder<…, Async>` back into its blocking equivalent: `IncrementalEncoder<…, Blocking>`.
+    - `fn into_blocking()`, which converts `IndexedIncrementalEncoder<…, Async>` back into its blocking equivalent: `IndexedIncrementalEncoder<…, Blocking>`.
+
+### Changed
+
+- Changed generic parameters of `IncrementalEncoder<…>` to `<Mode, Clk, Dt, Steps, T, PM>`, adding trailing `PM` parameter.
+- Changed generic parameters of `IndexedIncrementalEncoder<…>` to `<Mode, Clk, Dt, Idx, Steps, T, PM>`, adding trailing `PM` parameter.
+- Bumped MSRV from `1.74.1` to `1.75.0`.
 
 ## [0.1.1] - 2024-06-05
 
