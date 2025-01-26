@@ -1,5 +1,5 @@
 use embassy_futures::block_on;
-use embedded_hal_mock::eh1::digital::Edge;
+use embedded_hal_mock::eh1::digital::State;
 use embedded_hal_mock::eh1::digital::{
     Mock as PinMock, State as PinState, Transaction as PinTransaction,
 };
@@ -8,7 +8,7 @@ use quadrature_encoder::{RotaryEncoder, RotaryMovement};
 fn main() {
     let pin_clk = PinMock::new(&[
         PinTransaction::get(PinState::High),
-        PinTransaction::wait_for_edge(Edge::Falling),
+        PinTransaction::wait_for_state(State::Low),
     ]);
     let pin_dt = PinMock::new(&[PinTransaction::get(PinState::High)]);
 
