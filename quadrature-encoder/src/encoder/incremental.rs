@@ -213,15 +213,18 @@ where
     /// Waits asynchronously for any of the pins to change state, before returning.
     pub async fn poll(&mut self) -> Result<Option<Mode::Movement>, Error> {
         let clk_fut = match self.pin_clk_state {
-            true => self.pin_clk.wait_for_falling_edge().left_future(),
-            false => self.pin_clk.wait_for_rising_edge().right_future(),
+            true => self.pin_clk.wait_for_low().left_future(),
+            false => self.pin_clk.wait_for_high().right_future(),
         };
 
         let dt_fut = match self.pin_dt_state {
-            true => self.pin_dt.wait_for_falling_edge().left_future(),
-            false => self.pin_dt.wait_for_rising_edge().right_future(),
+            true => self.pin_dt.wait_for_low().left_future(),
+            false => self.pin_dt.wait_for_high().right_future(),
         };
 
+        // toggle the internal state, rather than reading the pin state directly,
+        // as the pin state has likely changed since the wait_for_low() future was resolved
+        // by the hardware interrupt behind-the-scenes.
         match select(clk_fut, dt_fut).await {
             Either::First(_) => {
                 self.pin_clk_state = !self.pin_clk_state;
@@ -230,6 +233,7 @@ where
                 self.pin_dt_state = !self.pin_dt_state;
             }
         };
+
         self.update()
     }
 
