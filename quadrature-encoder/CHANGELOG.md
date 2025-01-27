@@ -26,6 +26,7 @@ Please make sure to add your changes to the appropriate categories:
 
 - Tightened `IncrementalEncoder<…>`'s bounds by adding `T: WrappingNeg`.
 - Tightened `IndexedIncrementalEncoder<…>`'s bounds by adding `T: WrappingNeg`.
+- Switched to level-interrupt-based async poll method, improving robustness against noise.
 
 ### Deprecated
 
