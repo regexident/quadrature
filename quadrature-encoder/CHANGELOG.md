@@ -24,7 +24,8 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- n/a
+- Tightened `IncrementalEncoder<…>`'s bounds by adding `T: WrappingNeg`.
+- Tightened `IndexedIncrementalEncoder<…>`'s bounds by adding `T: WrappingNeg`.
 
 ### Deprecated
 
@@ -36,7 +37,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- n/A
+- Fixed `.position()` value not respecting `.is_reversed()` setting.
 
 ### Performance
 
