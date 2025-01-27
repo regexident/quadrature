@@ -2,7 +2,7 @@
 
 use core::marker::PhantomData;
 
-use num_traits::{One, SaturatingAdd, Zero};
+use num_traits::{One, SaturatingAdd, WrappingNeg, Zero};
 use quadrature_decoder::{Change, FullStep, IndexedIncrementalDecoder, StepMode};
 
 #[allow(unused_imports)]
@@ -75,7 +75,7 @@ where
     Dt: InputPin,
     Idx: InputPin,
     Steps: StepMode,
-    T: Copy + Zero + One + SaturatingAdd + From<i8>,
+    T: Copy + Zero + One + SaturatingAdd + WrappingNeg + From<i8>,
     PM: PollMode,
 {
     /// Sets the encoder's reversed mode, making it report flipped movements and positions.
@@ -124,12 +124,18 @@ where
 
     /// Returns the encoder's position counter relative to its initial position in number of cycles.
     pub fn position(&self) -> T {
-        self.decoder.counter()
+        match self.is_reversed {
+            true => self.decoder.counter().wrapping_neg(),
+            false => self.decoder.counter(),
+        }
     }
 
     /// Sets the encoder's position.
     pub fn set_position(&mut self, position: T) {
-        self.decoder.set_counter(position);
+        match self.is_reversed {
+            true => self.decoder.set_counter(position.wrapping_neg()),
+            false => self.decoder.set_counter(position),
+        }
     }
 }
 
@@ -140,7 +146,7 @@ where
     Dt: InputPin,
     Idx: InputPin,
     Steps: StepMode,
-    T: Copy + Zero + One + SaturatingAdd + From<i8>,
+    T: Copy + Zero + One + SaturatingAdd + WrappingNeg + From<i8>,
 {
     /// Updates the encoder's state based on the given **clock**, **data**, and **index** pins,
     /// returning the direction if a movement was detected, `None` if no movement was detected,
@@ -176,7 +182,7 @@ where
     Dt: InputPin + Wait,
     Idx: InputPin + Wait,
     Steps: StepMode,
-    T: Copy + Zero + One + SaturatingAdd + From<i8>,
+    T: Copy + Zero + One + SaturatingAdd + WrappingNeg + From<i8>,
 {
     /// Reconfigure the driver so that poll() is an async fn
     pub fn into_async(self) -> IndexedIncrementalEncoder<Mode, Clk, Dt, Idx, Steps, T, Async>
@@ -206,7 +212,7 @@ where
     Dt: InputPin + Wait,
     Idx: InputPin + Wait,
     Steps: StepMode,
-    T: Copy + Zero + One + SaturatingAdd + From<i8>,
+    T: Copy + Zero + One + SaturatingAdd + WrappingNeg + From<i8>,
 {
     /// Updates the encoder's state based on the given **clock**, **data**, and **index** pins,
     /// returning the direction if a movement was detected, `None` if no movement was detected,
