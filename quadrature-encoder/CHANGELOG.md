@@ -24,9 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- Tightened `IncrementalEncoder<…>`'s bounds by adding `T: WrappingNeg`.
-- Tightened `IndexedIncrementalEncoder<…>`'s bounds by adding `T: WrappingNeg`.
-- Switched to level-interrupt-based async poll method, improving robustness against noise.
+- n/a
 
 ### Deprecated
 
@@ -38,7 +36,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- Fixed `.position()` value not respecting `.is_reversed()` setting.
+- n/a
 
 ### Performance
 
@@ -51,6 +49,18 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.2.1] - 2025-01-27
+
+### Changed
+
+- Tightened `IncrementalEncoder<…>`'s bounds by adding `T: WrappingNeg`.
+- Tightened `IndexedIncrementalEncoder<…>`'s bounds by adding `T: WrappingNeg`.
+- Switched to level-interrupt-based async poll method, improving robustness against noise.
+
+### Fixed
+
+- Fixed `.position()` value not respecting `.is_reversed()` setting.
 
 ## [0.2.0] - 2025-01-24
 
