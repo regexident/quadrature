@@ -135,7 +135,7 @@ impl State {
 ///         │          └── Output bits
 ///         └── Unused bits
 /// ```
-#[repr(packed)]
+#[repr(Rust, packed)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) struct Transition {
     bits: u8,
