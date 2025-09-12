@@ -24,6 +24,8 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
+- Updated dependencies:
+  - `embassy-futures` from `0.1.1` to `0.1.2`
 - Bumped MSRV from `1.75.0` to `1.79.0`
 
 ### Deprecated
