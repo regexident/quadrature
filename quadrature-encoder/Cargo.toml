@@ -25,7 +25,7 @@ quadrature-decoder = { version = "0.2.0", path = "../quadrature-decoder", defaul
 embedded-hal-compat = { version = "0.13.0" }
 embedded-hal-async = { version = "1.0", optional = true }
 futures = { version = "0.3.31", default-features = false, optional = true }
-embassy-futures = { version = "0.1.1", optional = true }
+embassy-futures = { version = "0.1.2", optional = true }
 
 [dev-dependencies]
 embedded-hal-mock = { version = "0.11.0", features = [
