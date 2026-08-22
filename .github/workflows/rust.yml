@@ -42,7 +42,7 @@ jobs:
         with:
           toolchain: stable
           components: rust-src
-      - uses: cargo-bins/cargo-binstall@e00d2c94cc0067b77737821097a62d91c0301baa # v1.21.1
+      - uses: cargo-bins/cargo-binstall@75b4bfae1b2c753a6806bbce6e6cb89b602de33c # v1.22.0
       - run: cargo binstall cargo-expand --no-confirm
       - run: cargo test
 
@@ -76,8 +76,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
           toolchain: nightly
-      - uses: taiki-e/install-action@e5307749adff22649743d264eea18999b2666e85 # cargo-hack
-      - uses: taiki-e/install-action@b25a1714a03a210d8b43cdd294d6017ae1fdd5ef # cargo-minimal-versions
+      - uses: taiki-e/install-action@3de1b9ab5aa914575f1ee014f65699aec0dbb058 # cargo-hack
+      - uses: taiki-e/install-action@0e55c3ee306d9e8641682305c964e533d10d07f0 # cargo-minimal-versions
       - name: minimal-versions check
         run: cargo minimal-versions check --workspace --all-features --ignore-private -v
       - name: minimal-versions build
@@ -94,5 +94,5 @@ jobs:
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
           toolchain: nightly
-      - uses: taiki-e/install-action@e5307749adff22649743d264eea18999b2666e85 # cargo-hack
+      - uses: taiki-e/install-action@3de1b9ab5aa914575f1ee014f65699aec0dbb058 # cargo-hack
       - run: cargo hack check --rust-version --workspace --all-targets --ignore-private
